@@ -29,6 +29,7 @@ import { generateMcqsFromSyllabusAction } from '@/app/actions';
 import type { GenerateMcqsFromSyllabusOutput } from '@/ai/flows/generate-mcqs-from-syllabus';
 import { useToast } from '@/hooks/use-toast';
 import { BookCheck, Brain, HardHat, GraduationCap, ArrowRight } from 'lucide-react';
+import { Label } from '@/components/ui/label';
 
 const formSchema = z.object({
   level: z.enum(['Foundation', 'Intermediate', 'Final']),
