@@ -56,9 +56,6 @@ export function McqList({ mcqs: initialMcqs, onReset }: McqListProps) {
           <CardHeader>
               <div className="flex justify-between items-center">
                 <h1 className="font-headline text-3xl font-bold">Your Generated Questions</h1>
-                <Button onClick={onReset} variant="outline" size="sm">
-                    New Quiz
-                </Button>
               </div>
               <div className="flex justify-between items-center">
                 <p className="text-muted-foreground">
