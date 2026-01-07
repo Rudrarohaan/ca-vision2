@@ -8,8 +8,6 @@ import {
 } from '@/ai/flows/generate-mcqs-from-uploaded-material';
 import type { GenerateMcqsFromSyllabusInput, GenerateMcqsFromUploadedMaterialInput } from '@/lib/types';
 
-export const maxDuration = 60;
-
 export async function generateMcqsFromSyllabusAction(
   input: Omit<GenerateMcqsFromSyllabusInput, 'seed'>
 ) {
