@@ -1,8 +1,7 @@
 'use client';
 
 import type { MCQ } from '@/ai/flows/generate-mcqs-from-syllabus';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from './ui/card';
-import { Label } from './ui/label';
+import { Card, CardContent, CardHeader, CardTitle } from './ui/card';
 import { cn } from '@/lib/utils';
 import { CheckCircle2, XCircle, AlertTriangle } from 'lucide-react';
 

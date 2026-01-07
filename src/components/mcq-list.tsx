@@ -4,7 +4,7 @@ import { useState } from 'react';
 import type { GenerateMcqsFromSyllabusOutput, MCQ } from '@/ai/flows/generate-mcqs-from-syllabus';
 import { McqCard } from './mcq-card';
 import { Button } from './ui/button';
-import { Card, CardContent, CardHeader, CardFooter, CardTitle, CardDescription } from './ui/card';
+import { Card, CardContent, CardHeader, CardFooter } from './ui/card';
 import { ArrowLeft, ArrowRight } from 'lucide-react';
 import { Progress } from './ui/progress';
 import { useRouter } from 'next/navigation';
