@@ -1,11 +1,11 @@
 'use client';
 
 import { useState } from 'react';
-import type { GenerateMcqsFromSyllabusOutput } from '@/ai/flows/generate-mcqs-from-syllabus';
+import type { GenerateMcqsFromSyllabusOutput, MCQ } from '@/ai/flows/generate-mcqs-from-syllabus';
 import { McqCard } from './mcq-card';
 import { Button } from './ui/button';
-import { Card, CardContent, CardHeader, CardTitle, CardFooter } from './ui/card';
-import { Check, Repeat, Trophy, ArrowLeft, ArrowRight } from 'lucide-react';
+import { Card, CardContent, CardHeader, CardFooter } from './ui/card';
+import { Repeat, ArrowLeft, ArrowRight } from 'lucide-react';
 import { Progress } from './ui/progress';
 
 type McqListProps = {
@@ -13,31 +13,14 @@ type McqListProps = {
   onReset: () => void;
 };
 
-export function McqList({ mcqs, onReset }: McqListProps) {
-  const [score, setScore] = useState(0);
-  const [answeredCount, setAnsweredCount] = useState(0);
+export function McqList({ mcqs: initialMcqs, onReset }: McqListProps) {
+  const [mcqs, setMcqs] = useState<(MCQ & { userAnswer?: string | null })[]>(initialMcqs);
   const [currentQuestionIndex, setCurrentQuestionIndex] = useState(0);
-  const [answeredStatuses, setAnsweredStatuses] = useState<boolean[]>(
-    new Array(mcqs.length).fill(false)
-  );
 
-  const handleCorrectAnswer = () => {
-    if (!answeredStatuses[currentQuestionIndex]) {
-      setScore((prev) => prev + 1);
-      setAnsweredCount((prev) => prev + 1);
-      const newStatuses = [...answeredStatuses];
-      newStatuses[currentQuestionIndex] = true;
-      setAnsweredStatuses(newStatuses);
-    }
-  };
-  
-  const handleIncorrectAnswer = () => {
-     if (!answeredStatuses[currentQuestionIndex]) {
-      setAnsweredCount((prev) => prev + 1);
-      const newStatuses = [...answeredStatuses];
-      newStatuses[currentQuestionIndex] = true;
-      setAnsweredStatuses(newStatuses);
-    }
+  const handleOptionSelect = (option: string) => {
+    const newMcqs = [...mcqs];
+    newMcqs[currentQuestionIndex].userAnswer = option;
+    setMcqs(newMcqs);
   };
 
   const handleNext = () => {
@@ -51,10 +34,19 @@ export function McqList({ mcqs, onReset }: McqListProps) {
       setCurrentQuestionIndex(currentQuestionIndex - 1);
     }
   };
+
+  const handleSubmit = () => {
+    // Here you would typically navigate to a review page and pass the mcqs state.
+    // For now, we'll just log it and reset.
+    console.log('Quiz submitted!', mcqs);
+    alert('Quiz submitted! Check the console for your answers. A review page would be shown here.');
+    onReset();
+  };
   
-  const allAnswered = answeredCount === mcqs.length;
   const currentMcq = mcqs[currentQuestionIndex];
   const progress = ((currentQuestionIndex + 1) / mcqs.length) * 100;
+  const allAnswered = mcqs.every(mcq => mcq.userAnswer);
+
 
   return (
     <div className="container mx-auto max-w-4xl py-8">
@@ -72,9 +64,8 @@ export function McqList({ mcqs, onReset }: McqListProps) {
                     <McqCard
                         key={currentMcq.id}
                         mcq={currentMcq}
-                        questionNumber={currentQuestionIndex + 1}
-                        onCorrectAnswer={handleCorrectAnswer}
-                        onIncorrectAnswer={handleIncorrectAnswer}
+                        onSelectOption={handleOptionSelect}
+                        userAnswer={currentMcq.userAnswer || null}
                     />
                 </CardContent>
                 <CardFooter className="flex justify-between">
@@ -82,10 +73,16 @@ export function McqList({ mcqs, onReset }: McqListProps) {
                         <ArrowLeft className="mr-2 h-4 w-4" />
                         Previous
                     </Button>
-                    <Button onClick={handleNext} disabled={currentQuestionIndex === mcqs.length - 1}>
-                        Next
-                        <ArrowRight className="mr-2 h-4 w-4" />
-                    </Button>
+                    {currentQuestionIndex === mcqs.length - 1 ? (
+                        <Button onClick={handleSubmit} disabled={!allAnswered}>
+                            Submit Quiz
+                        </Button>
+                    ) : (
+                        <Button onClick={handleNext}>
+                            Next
+                            <ArrowRight className="ml-2 h-4 w-4" />
+                        </Button>
+                    )}
                 </CardFooter>
             </Card>
         </div>
@@ -93,23 +90,11 @@ export function McqList({ mcqs, onReset }: McqListProps) {
             <Card className="shadow-lg shadow-primary/5">
                 <CardHeader>
                     <CardTitle className="flex items-center gap-2">
-                        <Trophy className="text-primary"/> Your Score
+                        Quiz Controls
                     </CardTitle>
                 </CardHeader>
-                <CardContent className="text-center">
-                    <div className="text-5xl font-bold">
-                        {score} <span className="text-2xl text-muted-foreground">/ {mcqs.length}</span>
-                    </div>
-                    <p className="text-muted-foreground mt-2">{answeredCount} of {mcqs.length} answered</p>
-
-                    {allAnswered && (
-                        <div className="mt-4 p-3 rounded-md bg-accent text-accent-foreground flex flex-col items-center">
-                            <Check className="h-8 w-8 text-green-500 mb-2" />
-                           <p className="font-semibold">Quiz Complete!</p>
-                           <p className="text-sm">Great job finishing the quiz.</p>
-                        </div>
-                    )}
-                    
+                <CardContent>
+                  <p className="text-muted-foreground">Answer all questions to complete the quiz.</p>
                     <Button onClick={onReset} className="w-full mt-6">
                         <Repeat className="mr-2 h-4 w-4" />
                         Generate New Quiz
