@@ -174,21 +174,21 @@ export function UploadForm({ setMcqs, setLoading, setError }: UploadFormProps) {
                 >
                   <FormItem>
                     <RadioGroupItem value="Foundation" id="upload-level-foundation" className="sr-only" />
-                    <Label htmlFor="upload-level-foundation" className="flex flex-col items-center justify-between rounded-md border-2 border-muted bg-popover p-4 hover:bg-accent hover:text-accent-foreground peer-data-[state=checked]:border-primary [&:has([data-state=checked])]:border-primary cursor-pointer">
+                    <Label htmlFor="upload-level-foundation" className="flex flex-col items-center justify-between rounded-md border-2 border-muted bg-popover p-4 hover:bg-accent hover:text-accent-foreground peer-data-[state=checked]:border-primary peer-data-[state=checked]:bg-primary/10 [&:has([data-state=checked])]:border-primary cursor-pointer">
                       <GraduationCap className="mb-3 h-6 w-6" />
                       Foundation
                     </Label>
                   </FormItem>
                   <FormItem>
                     <RadioGroupItem value="Intermediate" id="upload-level-intermediate" className="sr-only" />
-                    <Label htmlFor="upload-level-intermediate" className="flex flex-col items-center justify-between rounded-md border-2 border-muted bg-popover p-4 hover:bg-accent hover:text-accent-foreground peer-data-[state=checked]:border-primary [&:has([data-state=checked])]:border-primary cursor-pointer">
+                    <Label htmlFor="upload-level-intermediate" className="flex flex-col items-center justify-between rounded-md border-2 border-muted bg-popover p-4 hover:bg-accent hover:text-accent-foreground peer-data-[state=checked]:border-primary peer-data-[state=checked]:bg-primary/10 [&:has([data-state=checked])]:border-primary cursor-pointer">
                       <BookCheck className="mb-3 h-6 w-6" />
                       Intermediate
                     </Label>
                   </FormItem>
                   <FormItem>
                     <RadioGroupItem value="Final" id="upload-level-final" className="sr-only" />
-                    <Label htmlFor="upload-level-final" className="flex flex-col items-center justify-between rounded-md border-2 border-muted bg-popover p-4 hover:bg-accent hover:text-accent-foreground peer-data-[state=checked]:border-primary [&:has([data-state=checked])]:border-primary cursor-pointer">
+                    <Label htmlFor="upload-level-final" className="flex flex-col items-center justify-between rounded-md border-2 border-muted bg-popover p-4 hover:bg-accent hover:text-accent-foreground peer-data-[state=checked]:border-primary peer-data-[state=checked]:bg-primary/10 [&:has([data-state=checked])]:border-primary cursor-pointer">
                       <Brain className="mb-3 h-6 w-6" />
                       Final
                     </Label>
@@ -215,19 +215,19 @@ export function UploadForm({ setMcqs, setLoading, setError }: UploadFormProps) {
                     >
                     <FormItem>
                         <RadioGroupItem value="Easy" id="upload-difficulty-easy" className="sr-only" />
-                        <Label htmlFor="upload-difficulty-easy" className="flex items-center justify-center rounded-md border-2 border-muted bg-popover p-3 hover:bg-accent hover:text-accent-foreground peer-data-[state=checked]:border-primary [&:has([data-state=checked])]:border-primary cursor-pointer text-sm">
+                        <Label htmlFor="upload-difficulty-easy" className="flex items-center justify-center rounded-md border-2 border-muted bg-popover p-3 hover:bg-accent hover:text-accent-foreground peer-data-[state=checked]:border-primary peer-data-[state=checked]:bg-primary/10 [&:has([data-state=checked])]:border-primary cursor-pointer text-sm">
                         Easy
                         </Label>
                     </FormItem>
                     <FormItem>
                         <RadioGroupItem value="Medium" id="upload-difficulty-medium" className="sr-only" />
-                        <Label htmlFor="upload-difficulty-medium" className="flex items-center justify-center rounded-md border-2 border-muted bg-popover p-3 hover:bg-accent hover:text-accent-foreground peer-data-[state=checked]:border-primary [&:has([data-state=checked])]:border-primary cursor-pointer text-sm">
+                        <Label htmlFor="upload-difficulty-medium" className="flex items-center justify-center rounded-md border-2 border-muted bg-popover p-3 hover:bg-accent hover:text-accent-foreground peer-data-[state=checked]:border-primary peer-data-[state=checked]:bg-primary/10 [&:has([data-state=checked])]:border-primary cursor-pointer text-sm">
                         Medium
                         </Label>
                     </FormItem>
                     <FormItem>
                         <RadioGroupItem value="Hard" id="upload-difficulty-hard" className="sr-only" />
-                        <Label htmlFor="upload-difficulty-hard" className="flex items-center justify-center rounded-md border-2 border-muted bg-popover p-3 hover:bg-accent hover:text-accent-foreground peer-data-[state=checked]:border-primary [&:has([data-state=checked])]:border-primary cursor-pointer text-sm">
+                        <Label htmlFor="upload-difficulty-hard" className="flex items-center justify-center rounded-md border-2 border-muted bg-popover p-3 hover:bg-accent hover:text-accent-foreground peer-data-[state=checked]:border-primary peer-data-[state=checked]:bg-primary/10 [&:has([data-state=checked])]:border-primary cursor-pointer text-sm">
                         Hard
                         </Label>
                     </FormItem>
