@@ -11,13 +11,6 @@ import {
 } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { ReviewCard } from '@/components/review-card';
-import {
-  Accordion,
-  AccordionContent,
-  AccordionItem,
-  AccordionTrigger,
-} from '@/components/ui/accordion';
-import { CheckCircle2, XCircle } from 'lucide-react';
 import { useState, useEffect } from 'react';
 import type { MCQ } from '@/ai/flows/generate-mcqs-from-syllabus';
 
@@ -81,42 +74,18 @@ export default function ReviewPage() {
 
 
   return (
-    <div className="container mx-auto max-w-5xl py-8">
+    <div className="container mx-auto max-w-4xl py-8">
       <Card>
-        <CardHeader className="text-center">
-          <CardTitle className="font-headline text-4xl font-bold">Quiz Results</CardTitle>
-          <CardDescription className="text-lg">
-            You scored
+        <CardHeader className="text-center border-b pb-6">
+          <CardTitle className="font-headline text-4xl font-bold">Quiz Review</CardTitle>
+          <CardDescription className="text-xl">
+            Your final score: <span className="font-bold text-primary">{score} / {mcqs.length}</span>
           </CardDescription>
-            <p className="text-5xl font-bold text-primary">{score} / {mcqs.length}</p>
-            <p className={`text-xl font-semibold ${scorePercentage >= 50 ? 'text-green-500' : 'text-red-500'}`}>
-                ({scorePercentage.toFixed(1)}%)
-            </p>
         </CardHeader>
-        <CardContent>
-          <h2 className="mb-4 text-center font-headline text-2xl font-bold">
-            Review Your Answers
-          </h2>
-          <Accordion type="single" collapsible className="w-full">
-            {mcqs.map((mcq, index) => (
-              <AccordionItem value={`item-${index}`} key={mcq.id}>
-                <AccordionTrigger className='hover:no-underline'>
-                  <div className='flex items-center gap-4 text-left'>
-                    {mcq.userAnswer === mcq.correctAnswer ? (
-                        <CheckCircle2 className="h-6 w-6 text-green-500 flex-shrink-0" />
-                    ) : (
-                        <XCircle className="h-6 w-6 text-red-500 flex-shrink-0" />
-                    )}
-                    <span className="font-semibold">Question {index + 1}:</span>
-                    <span className="truncate">{mcq.question}</span>
-                  </div>
-                </AccordionTrigger>
-                <AccordionContent>
-                  <ReviewCard mcq={mcq} />
-                </AccordionContent>
-              </AccordionItem>
-            ))}
-          </Accordion>
+        <CardContent className="p-6 space-y-8">
+          {mcqs.map((mcq, index) => (
+              <ReviewCard key={mcq.id} mcq={mcq} questionNumber={index + 1} />
+          ))}
         </CardContent>
         <CardFooter>
           <Button className="w-full" size="lg" onClick={handleNewQuiz}>
