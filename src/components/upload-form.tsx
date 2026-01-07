@@ -34,7 +34,6 @@ const formSchema = z.object({
       (file) => ACCEPTED_FILE_TYPES.includes(file?.type),
       '.pdf, .docx, and .txt files are accepted.'
     ),
-  subject: z.string().min(1, 'Please enter a subject.'),
   difficulty: z.enum(['Easy', 'Medium', 'Hard']),
   count: z.number().min(5).max(50),
 });
@@ -55,7 +54,6 @@ export function UploadForm({ setMcqs, setLoading, setError }: UploadFormProps) {
     defaultValues: {
       difficulty: 'Medium',
       count: 10,
-      subject: '',
     },
   });
   
@@ -88,7 +86,8 @@ export function UploadForm({ setMcqs, setLoading, setError }: UploadFormProps) {
     setError(null);
     try {
       const fileDataUri = await fileToDataUri(values.file);
-      const result = await generateMcqsFromUploadedMaterialAction({ ...values, fileDataUri, level: 'Intermediate' });
+      // subject and level are derived by the AI flow.
+      const result = await generateMcqsFromUploadedMaterialAction({ ...values, fileDataUri, subject: '', level: '' });
       if (result && result.length > 0) {
         setMcqs(result);
       } else {
@@ -139,20 +138,6 @@ export function UploadForm({ setMcqs, setLoading, setError }: UploadFormProps) {
                   </label>
                 </FormControl>
               )}
-              <FormMessage />
-            </FormItem>
-          )}
-        />
-        
-        <FormField
-          control={form.control}
-          name="subject"
-          render={({ field }) => (
-            <FormItem>
-              <FormLabel className="text-lg font-semibold">Subject</FormLabel>
-              <FormControl>
-                <Input placeholder="e.g., Indian Contract Act, 1872" {...field} />
-              </FormControl>
               <FormMessage />
             </FormItem>
           )}
