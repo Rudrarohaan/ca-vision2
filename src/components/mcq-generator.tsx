@@ -44,33 +44,35 @@ export function McqGenerator() {
   }
   
   return (
-    <div className="container mx-auto max-w-3xl py-8">
-      <div className="flex flex-col items-center text-center mb-8">
-        <h1 className="font-headline text-4xl font-extrabold tracking-tight lg:text-5xl">
-          AI-Powered MCQ Generator
-        </h1>
-        <p className="mt-3 max-w-2xl text-lg text-muted-foreground">
-          Create custom multiple-choice questions for your CA exam preparation in seconds.
-        </p>
+    <div className="flex flex-1 items-center justify-center p-4">
+      <div className="w-full max-w-3xl">
+        <div className="flex flex-col items-center text-center mb-8">
+          <h1 className="font-headline text-4xl font-extrabold tracking-tight lg:text-5xl">
+            AI-Powered MCQ Generator
+          </h1>
+          <p className="mt-3 max-w-2xl text-lg text-muted-foreground">
+            Create custom multiple-choice questions for your CA exam preparation in seconds.
+          </p>
+        </div>
+        <Card className="shadow-2xl shadow-primary/5">
+          <CardContent className="p-0">
+            <Tabs defaultValue="syllabus" className="w-full">
+              <TabsList className="grid w-full grid-cols-2 rounded-t-lg rounded-b-none h-14">
+                <TabsTrigger value="syllabus" className="h-full rounded-tl-md text-base">From Syllabus</TabsTrigger>
+                <TabsTrigger value="upload" className="h-full rounded-tr-md text-base">From Upload</TabsTrigger>
+              </TabsList>
+              <div className="p-6">
+                <TabsContent value="syllabus">
+                  <SyllabusForm setMcqs={setMcqs} setLoading={setLoading} setError={setError} />
+                </TabsContent>
+                <TabsContent value="upload">
+                  <UploadForm setMcqs={setMcqs} setLoading={setLoading} setError={setError} />
+                </TabsContent>
+              </div>
+            </Tabs>
+          </CardContent>
+        </Card>
       </div>
-      <Card className="shadow-2xl shadow-primary/5">
-        <CardContent className="p-0">
-          <Tabs defaultValue="syllabus" className="w-full">
-            <TabsList className="grid w-full grid-cols-2 rounded-t-lg rounded-b-none h-14">
-              <TabsTrigger value="syllabus" className="h-full rounded-tl-md text-base">From Syllabus</TabsTrigger>
-              <TabsTrigger value="upload" className="h-full rounded-tr-md text-base">From Upload</TabsTrigger>
-            </TabsList>
-            <div className="p-6">
-              <TabsContent value="syllabus">
-                <SyllabusForm setMcqs={setMcqs} setLoading={setLoading} setError={setError} />
-              </TabsContent>
-              <TabsContent value="upload">
-                <UploadForm setMcqs={setMcqs} setLoading={setLoading} setError={setError} />
-              </TabsContent>
-            </div>
-          </Tabs>
-        </CardContent>
-      </Card>
     </div>
   );
 }
