@@ -4,7 +4,7 @@ import { useState } from 'react';
 import type { GenerateMcqsFromSyllabusOutput, MCQ } from '@/ai/flows/generate-mcqs-from-syllabus';
 import { McqCard } from './mcq-card';
 import { Button } from './ui/button';
-import { Card, CardContent, CardHeader, CardFooter, CardTitle } from './ui/card';
+import { Card, CardContent, CardHeader, CardFooter } from './ui/card';
 import { Repeat, ArrowLeft, ArrowRight } from 'lucide-react';
 import { Progress } from './ui/progress';
 
@@ -55,9 +55,15 @@ export function McqList({ mcqs: initialMcqs, onReset }: McqListProps) {
             <Card>
                 <CardHeader>
                     <h1 className="font-headline text-3xl font-bold">Your Generated Questions</h1>
-                    <p className="text-muted-foreground">
-                        Question {currentQuestionIndex + 1} of {mcqs.length}
-                    </p>
+                    <div className="flex justify-between items-center">
+                      <p className="text-muted-foreground">
+                          Question {currentQuestionIndex + 1} of {mcqs.length}
+                      </p>
+                      <Button onClick={onReset} variant="outline" size="sm">
+                          <Repeat className="mr-2 h-4 w-4" />
+                          New Quiz
+                      </Button>
+                    </div>
                     <Progress value={progress} className="w-full mt-2" />
                 </CardHeader>
                 <CardContent>
@@ -84,22 +90,6 @@ export function McqList({ mcqs: initialMcqs, onReset }: McqListProps) {
                         </Button>
                     )}
                 </CardFooter>
-            </Card>
-        </div>
-        <div className="w-full md:w-72 sticky top-24">
-            <Card className="shadow-lg shadow-primary/5">
-                <CardHeader>
-                    <CardTitle className="flex items-center gap-2">
-                        Quiz Controls
-                    </CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <p className="text-muted-foreground">Answer all questions to complete the quiz.</p>
-                    <Button onClick={onReset} className="w-full mt-6">
-                        <Repeat className="mr-2 h-4 w-4" />
-                        Generate New Quiz
-                    </Button>
-                </CardContent>
             </Card>
         </div>
       </div>
