@@ -2,18 +2,20 @@
 
 import {
   generateMcqsFromSyllabus,
-  type GenerateMcqsFromSyllabusInput,
 } from '@/ai/flows/generate-mcqs-from-syllabus';
 import {
   generateMcqsFromUploadedMaterial,
-  type GenerateMcqsFromUploadedMaterialInput,
 } from '@/ai/flows/generate-mcqs-from-uploaded-material';
+import type { GenerateMcqsFromSyllabusInput, GenerateMcqsFromUploadedMaterialInput } from '@/lib/types';
 
 export async function generateMcqsFromSyllabusAction(
-  input: GenerateMcqsFromSyllabusInput
+  input: Omit<GenerateMcqsFromSyllabusInput, 'seed'>
 ) {
   try {
-    const mcqs = await generateMcqsFromSyllabus(input);
+    const mcqs = await generateMcqsFromSyllabus({
+      ...input,
+      seed: Math.random(),
+    });
     return mcqs;
   } catch (error) {
     console.error('Error generating MCQs from syllabus:', error);
@@ -21,7 +23,7 @@ export async function generateMcqsFromSyllabusAction(
   }
 }
 
-type UploadActionInput = Omit<GenerateMcqsFromUploadedMaterialInput, 'fileDataUri' | 'level' | 'subject'> & {
+type UploadActionInput = Omit<GenerateMcqsFromUploadedMaterialInput, 'fileDataUri' | 'level' | 'subject' | 'seed'> & {
   fileDataUri: string;
 };
 
@@ -33,6 +35,7 @@ export async function generateMcqsFromUploadedMaterialAction(
       ...input,
       level: 'Foundation',
       subject: '',
+      seed: Math.random(),
     });
     return mcqs;
   } catch (error) {
