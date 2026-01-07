@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import type { MCQ } from '@/ai/flows/generate-mcqs-from-syllabus';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from './ui/card';
 import { RadioGroup, RadioGroupItem } from './ui/radio-group';
@@ -20,6 +20,12 @@ type McqCardProps = {
 export function McqCard({ mcq, questionNumber, onCorrectAnswer, onIncorrectAnswer }: McqCardProps) {
   const [selectedOption, setSelectedOption] = useState<string | null>(null);
   const [isAnswered, setIsAnswered] = useState(false);
+  
+  useEffect(() => {
+    setSelectedOption(null);
+    setIsAnswered(false);
+  }, [mcq]);
+
   const isCorrect = selectedOption === mcq.correctAnswer;
 
   const handleSubmit = () => {
@@ -57,11 +63,8 @@ export function McqCard({ mcq, questionNumber, onCorrectAnswer, onIncorrectAnswe
   }
 
   return (
-    <Card className="overflow-hidden transition-all hover:shadow-primary/10">
-      <CardHeader>
-        <CardTitle className="text-xl">
-          Question {questionNumber}
-        </CardTitle>
+    <div className="overflow-hidden transition-all">
+      <CardHeader className="pt-0">
         <CardDescription className="text-base pt-2 text-foreground">
           {mcq.question}
         </CardDescription>
@@ -83,7 +86,7 @@ export function McqCard({ mcq, questionNumber, onCorrectAnswer, onIncorrectAnswe
                   getOptionClassName(key),
                   !isAnswered && 'peer-data-[state=checked]:border-primary [&:has([data-state=checked])]:border-primary',
                   isAnswered && 'cursor-not-allowed',
-                  selectedOption === key && 'bg-accent'
+                  selectedOption === key && !isAnswered && 'bg-accent'
                 )}
               >
                 <div className="flex items-center gap-4">
@@ -113,6 +116,6 @@ export function McqCard({ mcq, questionNumber, onCorrectAnswer, onIncorrectAnswe
           </Alert>
         )}
       </CardFooter>
-    </Card>
+    </div>
   );
 }
