@@ -38,11 +38,15 @@ export default function ReviewPage() {
   const [mcqs, setMcqs] = useState<(MCQ & { userAnswer: string | null })[]>([]);
   
   useEffect(() => {
-    // In a real app, you'd use a global state (like React Context) to get the quiz data.
-    // For now, we'll try to retrieve it from localStorage as a fallback.
     const storedMcqs = localStorage.getItem('quizState');
     if (storedMcqs) {
-      setMcqs(JSON.parse(storedMcqs));
+      const parsedMcqs = JSON.parse(storedMcqs);
+      // Ensure userAnswer is part of the state
+      const mcqsWithAnswers = parsedMcqs.map((mcq: MCQ & {userAnswer?: string | null}) => ({
+        ...mcq,
+        userAnswer: mcq.userAnswer || null,
+      }));
+      setMcqs(mcqsWithAnswers);
     } else {
       setMcqs(mockMcqs);
     }
@@ -59,7 +63,7 @@ export default function ReviewPage() {
   
   const scorePercentage = mcqs.length > 0 ? (score / mcqs.length) * 100 : 0;
 
-  if (mcqs.length === 0 || (mcqs.length === 1 && mcqs[0].id === 1)) {
+  if (mcqs.length === 0 || (mcqs.length > 0 && !mcqs[0].userAnswer && mcqs[0].id === 1)) {
      return (
         <div className="flex min-h-screen flex-col items-center justify-center bg-background p-4">
              <Card className="w-full max-w-lg text-center">
