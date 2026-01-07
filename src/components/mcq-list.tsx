@@ -49,7 +49,7 @@ export function McqList({ mcqs: initialMcqs, onReset }: McqListProps) {
 
 
   return (
-    <div className="container mx-auto max-w-3xl py-8">
+    <div className="container mx-auto max-w-5xl py-8">
       <Card>
           <CardHeader>
               <div className="flex justify-between items-center">
