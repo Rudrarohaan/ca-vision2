@@ -24,7 +24,6 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 import { Input } from '@/components/ui/input';
-import { Slider } from '@/components/ui/slider';
 import { generateMcqsFromSyllabusAction } from '@/app/actions';
 import type { GenerateMcqsFromSyllabusOutput } from '@/ai/flows/generate-mcqs-from-syllabus';
 import { useToast } from '@/hooks/use-toast';
@@ -36,7 +35,7 @@ const formSchema = z.object({
   group: z.enum(['Group I', 'Group II']).optional(),
   subject: z.string().min(1, 'Please select a subject.'),
   difficulty: z.enum(['Easy', 'Medium', 'Hard']),
-  count: z.number().min(5).max(50),
+  count: z.coerce.number().min(5, 'Minimum 5 questions').max(50, 'Maximum 50 questions'),
 });
 
 type SyllabusFormProps = {
@@ -48,7 +47,6 @@ type SyllabusFormProps = {
 export function SyllabusForm({ setMcqs, setLoading, setError }: SyllabusFormProps) {
   const { toast } = useToast();
   const [subjects, setSubjects] = useState<{name: string, value: string}[]>([]);
-  const [count, setCount] = useState(10);
 
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
@@ -57,6 +55,7 @@ export function SyllabusForm({ setMcqs, setLoading, setError }: SyllabusFormProp
       difficulty: 'Medium',
       count: 10,
     },
+    mode: 'onChange'
   });
 
   const level = form.watch('level');
@@ -128,21 +127,21 @@ export function SyllabusForm({ setMcqs, setLoading, setError }: SyllabusFormProp
                 >
                   <FormItem>
                     <RadioGroupItem value="Foundation" id="level-foundation" className="sr-only" />
-                    <Label htmlFor="level-foundation" className="flex flex-col items-center justify-between rounded-md border-2 border-muted bg-popover p-4 hover:bg-accent hover:text-accent-foreground peer-data-[state=checked]:border-primary peer-data-[state=checked]:bg-primary peer-data-[state=checked]:text-primary-foreground cursor-pointer">
+                    <Label htmlFor="level-foundation" className={`flex flex-col items-center justify-between rounded-md border-2 p-4 cursor-pointer transition-all ${field.value === 'Foundation' ? 'border-primary bg-primary text-primary-foreground' : 'border-muted bg-popover hover:bg-accent hover:text-accent-foreground'}`}>
                       <GraduationCap className="mb-3 h-6 w-6" />
                       Foundation
                     </Label>
                   </FormItem>
                   <FormItem>
                     <RadioGroupItem value="Intermediate" id="level-intermediate" className="sr-only" />
-                    <Label htmlFor="level-intermediate" className="flex flex-col items-center justify-between rounded-md border-2 border-muted bg-popover p-4 hover:bg-accent hover:text-accent-foreground peer-data-[state=checked]:border-primary peer-data-[state=checked]:bg-primary peer-data-[state=checked]:text-primary-foreground cursor-pointer">
+                    <Label htmlFor="level-intermediate" className={`flex flex-col items-center justify-between rounded-md border-2 p-4 cursor-pointer transition-all ${field.value === 'Intermediate' ? 'border-primary bg-primary text-primary-foreground' : 'border-muted bg-popover hover:bg-accent hover:text-accent-foreground'}`}>
                       <BookCheck className="mb-3 h-6 w-6" />
                       Intermediate
                     </Label>
                   </FormItem>
                   <FormItem>
                     <RadioGroupItem value="Final" id="level-final" className="sr-only" />
-                    <Label htmlFor="level-final" className="flex flex-col items-center justify-between rounded-md border-2 border-muted bg-popover p-4 hover:bg-accent hover:text-accent-foreground peer-data-[state=checked]:border-primary peer-data-[state=checked]:bg-primary peer-data-[state=checked]:text-primary-foreground cursor-pointer">
+                    <Label htmlFor="level-final" className={`flex flex-col items-center justify-between rounded-md border-2 p-4 cursor-pointer transition-all ${field.value === 'Final' ? 'border-primary bg-primary text-primary-foreground' : 'border-muted bg-popover hover:bg-accent hover:text-accent-foreground'}`}>
                       <Brain className="mb-3 h-6 w-6" />
                       Final
                     </Label>
@@ -169,13 +168,13 @@ export function SyllabusForm({ setMcqs, setLoading, setError }: SyllabusFormProp
                   >
                     <FormItem>
                       <RadioGroupItem value="Group I" id="group-i" className="sr-only" />
-                      <Label htmlFor="group-i" className="flex items-center justify-center rounded-md border-2 border-muted bg-popover p-4 hover:bg-accent hover:text-accent-foreground peer-data-[state=checked]:border-primary peer-data-[state=checked]:bg-primary peer-data-[state=checked]:text-primary-foreground cursor-pointer">
+                      <Label htmlFor="group-i" className={`flex items-center justify-center rounded-md border-2 p-4 cursor-pointer transition-all ${field.value === 'Group I' ? 'border-primary bg-primary text-primary-foreground' : 'border-muted bg-popover hover:bg-accent hover:text-accent-foreground'}`}>
                         Group I
                       </Label>
                     </FormItem>
                     <FormItem>
                       <RadioGroupItem value="Group II" id="group-ii" className="sr-only" />
-                      <Label htmlFor="group-ii" className="flex items-center justify-center rounded-md border-2 border-muted bg-popover p-4 hover:bg-accent hover:text-accent-foreground peer-data-[state=checked]:border-primary peer-data-[state=checked]:bg-primary peer-data-[state=checked]:text-primary-foreground cursor-pointer">
+                      <Label htmlFor="group-ii" className={`flex items-center justify-center rounded-md border-2 p-4 cursor-pointer transition-all ${field.value === 'Group II' ? 'border-primary bg-primary text-primary-foreground' : 'border-muted bg-popover hover:bg-accent hover:text-accent-foreground'}`}>
                         Group II
                       </Label>
                     </FormItem>
@@ -227,19 +226,19 @@ export function SyllabusForm({ setMcqs, setLoading, setError }: SyllabusFormProp
                     >
                     <FormItem>
                         <RadioGroupItem value="Easy" id="difficulty-easy" className="sr-only" />
-                        <Label htmlFor="difficulty-easy" className="flex items-center justify-center rounded-md border-2 border-muted bg-popover p-3 hover:bg-accent hover:text-accent-foreground peer-data-[state=checked]:border-primary peer-data-[state=checked]:bg-primary peer-data-[state=checked]:text-primary-foreground cursor-pointer text-sm">
+                        <Label htmlFor="difficulty-easy" className={`flex items-center justify-center rounded-md border-2 p-3 cursor-pointer text-sm transition-all ${field.value === 'Easy' ? 'border-primary bg-primary text-primary-foreground' : 'border-muted bg-popover hover:bg-accent hover:text-accent-foreground'}`}>
                         Easy
                         </Label>
                     </FormItem>
                     <FormItem>
                         <RadioGroupItem value="Medium" id="difficulty-medium" className="sr-only" />
-                        <Label htmlFor="difficulty-medium" className="flex items-center justify-center rounded-md border-2 border-muted bg-popover p-3 hover:bg-accent hover:text-accent-foreground peer-data-[state=checked]:border-primary peer-data-[state=checked]:bg-primary peer-data-[state=checked]:text-primary-foreground cursor-pointer text-sm">
+                        <Label htmlFor="difficulty-medium" className={`flex items-center justify-center rounded-md border-2 p-3 cursor-pointer text-sm transition-all ${field.value === 'Medium' ? 'border-primary bg-primary text-primary-foreground' : 'border-muted bg-popover hover:bg-accent hover:text-accent-foreground'}`}>
                         Medium
                         </Label>
                     </FormItem>
                     <FormItem>
                         <RadioGroupItem value="Hard" id="difficulty-hard" className="sr-only" />
-                        <Label htmlFor="difficulty-hard" className="flex items-center justify-center rounded-md border-2 border-muted bg-popover p-3 hover:bg-accent hover:text-accent-foreground peer-data-[state=checked]:border-primary peer-data-[state=checked]:bg-primary peer-data-[state=checked]:text-primary-foreground cursor-pointer text-sm">
+                        <Label htmlFor="difficulty-hard" className={`flex items-center justify-center rounded-md border-2 p-3 cursor-pointer text-sm transition-all ${field.value === 'Hard' ? 'border-primary bg-primary text-primary-foreground' : 'border-muted bg-popover hover:bg-accent hover:text-accent-foreground'}`}>
                         Hard
                         </Label>
                     </FormItem>
@@ -255,17 +254,15 @@ export function SyllabusForm({ setMcqs, setLoading, setError }: SyllabusFormProp
                 name="count"
                 render={({ field }) => (
                     <FormItem>
-                        <FormLabel className="text-lg font-semibold">Number of Questions: <span className="text-primary font-bold">{count}</span></FormLabel>
+                        <FormLabel className="text-lg font-semibold">Number of Questions</FormLabel>
                         <FormControl>
-                            <Slider
-                                defaultValue={[10]}
-                                min={5}
-                                max={50}
-                                step={1}
-                                onValueChange={(value) => {
-                                    field.onChange(value[0]);
-                                    setCount(value[0]);
-                                }}
+                            <Input
+                                {...field}
+                                type="number"
+                                min="5"
+                                max="50"
+                                placeholder="e.g., 10"
+                                onChange={(e) => field.onChange(e.target.value)}
                             />
                         </FormControl>
                         <FormMessage />

@@ -15,7 +15,6 @@ import {
 } from '@/components/ui/form';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { Input } from '@/components/ui/input';
-import { Slider } from '@/components/ui/slider';
 import { generateMcqsFromUploadedMaterialAction } from '@/app/actions';
 import type { GenerateMcqsFromUploadedMaterialOutput } from '@/ai/flows/generate-mcqs-from-uploaded-material';
 import { useToast } from '@/hooks/use-toast';
@@ -35,7 +34,9 @@ const formSchema = z.object({
       '.pdf, .docx, and .txt files are accepted.'
     ),
   difficulty: z.enum(['Easy', 'Medium', 'Hard']),
-  count: z.number().min(5).max(50),
+  count: z.coerce.number().min(5, "Minimum 5 questions").max(50, "Maximum 50 questions"),
+  level: z.string().optional(),
+  subject: z.string().optional(),
 });
 
 type UploadFormProps = {
@@ -46,7 +47,6 @@ type UploadFormProps = {
 
 export function UploadForm({ setMcqs, setLoading, setError }: UploadFormProps) {
   const { toast } = useToast();
-  const [count, setCount] = useState(10);
   const [file, setFile] = useState<File | null>(null);
 
   const form = useForm<z.infer<typeof formSchema>>({
@@ -55,6 +55,7 @@ export function UploadForm({ setMcqs, setLoading, setError }: UploadFormProps) {
       difficulty: 'Medium',
       count: 10,
     },
+    mode: 'onChange'
   });
   
   const handleFileChange = (event: React.ChangeEvent<HTMLInputElement>) => {
@@ -86,7 +87,6 @@ export function UploadForm({ setMcqs, setLoading, setError }: UploadFormProps) {
     setError(null);
     try {
       const fileDataUri = await fileToDataUri(values.file);
-      // subject and level are derived by the AI flow.
       const result = await generateMcqsFromUploadedMaterialAction({ ...values, fileDataUri });
       if (result && result.length > 0) {
         setMcqs(result);
@@ -158,19 +158,19 @@ export function UploadForm({ setMcqs, setLoading, setError }: UploadFormProps) {
                     >
                     <FormItem>
                         <RadioGroupItem value="Easy" id="upload-difficulty-easy" className="sr-only" />
-                        <Label htmlFor="upload-difficulty-easy" className="flex items-center justify-center rounded-md border-2 border-muted bg-popover p-3 hover:bg-accent hover:text-accent-foreground peer-data-[state=checked]:border-primary peer-data-[state=checked]:bg-primary peer-data-[state=checked]:text-primary-foreground cursor-pointer text-sm">
+                        <Label htmlFor="upload-difficulty-easy" className={`flex items-center justify-center rounded-md border-2 p-3 cursor-pointer text-sm transition-all ${field.value === 'Easy' ? 'border-primary bg-primary text-primary-foreground' : 'border-muted bg-popover hover:bg-accent hover:text-accent-foreground'}`}>
                         Easy
                         </Label>
                     </FormItem>
                     <FormItem>
                         <RadioGroupItem value="Medium" id="upload-difficulty-medium" className="sr-only" />
-                        <Label htmlFor="upload-difficulty-medium" className="flex items-center justify-center rounded-md border-2 border-muted bg-popover p-3 hover:bg-accent hover:text-accent-foreground peer-data-[state=checked]:border-primary peer-data-[state=checked]:bg-primary peer-data-[state=checked]:text-primary-foreground cursor-pointer text-sm">
+                        <Label htmlFor="upload-difficulty-medium" className={`flex items-center justify-center rounded-md border-2 p-3 cursor-pointer text-sm transition-all ${field.value === 'Medium' ? 'border-primary bg-primary text-primary-foreground' : 'border-muted bg-popover hover:bg-accent hover:text-accent-foreground'}`}>
                         Medium
                         </Label>
                     </FormItem>
                     <FormItem>
                         <RadioGroupItem value="Hard" id="upload-difficulty-hard" className="sr-only" />
-                        <Label htmlFor="upload-difficulty-hard" className="flex items-center justify-center rounded-md border-2 border-muted bg-popover p-3 hover:bg-accent hover:text-accent-foreground peer-data-[state=checked]:border-primary peer-data-[state=checked]:bg-primary peer-data-[state=checked]:text-primary-foreground cursor-pointer text-sm">
+                        <Label htmlFor="upload-difficulty-hard" className={`flex items-center justify-center rounded-md border-2 p-3 cursor-pointer text-sm transition-all ${field.value === 'Hard' ? 'border-primary bg-primary text-primary-foreground' : 'border-muted bg-popover hover:bg-accent hover:text-accent-foreground'}`}>
                         Hard
                         </Label>
                     </FormItem>
@@ -186,17 +186,15 @@ export function UploadForm({ setMcqs, setLoading, setError }: UploadFormProps) {
                 name="count"
                 render={({ field }) => (
                     <FormItem>
-                        <FormLabel className="text-lg font-semibold">Number of Questions: <span className="text-primary font-bold">{count}</span></FormLabel>
+                        <FormLabel className="text-lg font-semibold">Number of Questions</FormLabel>
                         <FormControl>
-                            <Slider
-                                defaultValue={[10]}
-                                min={5}
-                                max={50}
-                                step={1}
-                                onValueChange={(value) => {
-                                    field.onChange(value[0]);
-                                    setCount(value[0]);
-                                }}
+                             <Input
+                                {...field}
+                                type="number"
+                                min="5"
+                                max="50"
+                                placeholder="e.g., 10"
+                                onChange={(e) => field.onChange(e.target.value)}
                             />
                         </FormControl>
                         <FormMessage />
