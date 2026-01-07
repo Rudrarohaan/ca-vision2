@@ -87,7 +87,7 @@ export function UploadForm({ setMcqs, setLoading, setError }: UploadFormProps) {
     try {
       const fileDataUri = await fileToDataUri(values.file);
       // subject and level are derived by the AI flow.
-      const result = await generateMcqsFromUploadedMaterialAction({ ...values, fileDataUri, subject: '', level: '' });
+      const result = await generateMcqsFromUploadedMaterialAction({ ...values, fileDataUri });
       if (result && result.length > 0) {
         setMcqs(result);
       } else {

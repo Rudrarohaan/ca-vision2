@@ -193,7 +193,7 @@ export function SyllabusForm({ setMcqs, setLoading, setError }: SyllabusFormProp
           render={({ field }) => (
             <FormItem>
               <FormLabel className="text-lg font-semibold">Subject</FormLabel>
-              <Select onValueChange={field.onChange} defaultValue={field.value} disabled={subjects.length === 0}>
+              <Select onValueChange={field.onChange} value={field.value} disabled={subjects.length === 0}>
                 <FormControl>
                   <SelectTrigger>
                     <SelectValue placeholder="Select a subject" />

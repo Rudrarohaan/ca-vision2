@@ -21,7 +21,7 @@ export async function generateMcqsFromSyllabusAction(
   }
 }
 
-type UploadActionInput = Omit<GenerateMcqsFromUploadedMaterialInput, 'fileDataUri'> & {
+type UploadActionInput = Omit<GenerateMcqsFromUploadedMaterialInput, 'fileDataUri' | 'level' | 'subject'> & {
   fileDataUri: string;
 };
 
@@ -29,7 +29,11 @@ export async function generateMcqsFromUploadedMaterialAction(
   input: UploadActionInput
 ) {
   try {
-    const mcqs = await generateMcqsFromUploadedMaterial(input);
+    const mcqs = await generateMcqsFromUploadedMaterial({
+      ...input,
+      level: 'Foundation',
+      subject: '',
+    });
     return mcqs;
   } catch (error) {
     console.error('Error generating MCQs from uploaded material:', error);
