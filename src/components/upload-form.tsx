@@ -19,7 +19,7 @@ import { Slider } from '@/components/ui/slider';
 import { generateMcqsFromUploadedMaterialAction } from '@/app/actions';
 import type { GenerateMcqsFromUploadedMaterialOutput } from '@/ai/flows/generate-mcqs-from-uploaded-material';
 import { useToast } from '@/hooks/use-toast';
-import { ArrowRight, UploadCloud, File, X, GraduationCap, BookCheck, Brain } from 'lucide-react';
+import { ArrowRight, UploadCloud, File, X } from 'lucide-react';
 import { Label } from '@/components/ui/label';
 
 const MAX_FILE_SIZE = 5 * 1024 * 1024; // 5MB
@@ -158,19 +158,19 @@ export function UploadForm({ setMcqs, setLoading, setError }: UploadFormProps) {
                     >
                     <FormItem>
                         <RadioGroupItem value="Easy" id="upload-difficulty-easy" className="sr-only" />
-                        <Label htmlFor="upload-difficulty-easy" className="flex items-center justify-center rounded-md border-2 border-muted bg-popover p-3 hover:bg-accent hover:text-accent-foreground peer-data-[state=checked]:border-primary peer-data-[state=checked]:bg-primary peer-data-[state=checked]:text-primary-foreground [&:has([data-state=checked])]:border-primary cursor-pointer text-sm">
+                        <Label htmlFor="upload-difficulty-easy" className="flex items-center justify-center rounded-md border-2 border-muted bg-popover p-3 hover:bg-accent hover:text-accent-foreground peer-data-[state=checked]:border-primary peer-data-[state=checked]:bg-primary peer-data-[state=checked]:text-primary-foreground cursor-pointer text-sm">
                         Easy
                         </Label>
                     </FormItem>
                     <FormItem>
                         <RadioGroupItem value="Medium" id="upload-difficulty-medium" className="sr-only" />
-                        <Label htmlFor="upload-difficulty-medium" className="flex items-center justify-center rounded-md border-2 border-muted bg-popover p-3 hover:bg-accent hover:text-accent-foreground peer-data-[state=checked]:border-primary peer-data-[state=checked]:bg-primary peer-data-[state=checked]:text-primary-foreground [&:has([data-state=checked])]:border-primary cursor-pointer text-sm">
+                        <Label htmlFor="upload-difficulty-medium" className="flex items-center justify-center rounded-md border-2 border-muted bg-popover p-3 hover:bg-accent hover:text-accent-foreground peer-data-[state=checked]:border-primary peer-data-[state=checked]:bg-primary peer-data-[state=checked]:text-primary-foreground cursor-pointer text-sm">
                         Medium
                         </Label>
                     </FormItem>
                     <FormItem>
                         <RadioGroupItem value="Hard" id="upload-difficulty-hard" className="sr-only" />
-                        <Label htmlFor="upload-difficulty-hard" className="flex items-center justify-center rounded-md border-2 border-muted bg-popover p-3 hover:bg-accent hover:text-accent-foreground peer-data-[state=checked]:border-primary peer-data-[state=checked]:bg-primary peer-data-[state=checked]:text-primary-foreground [&:has([data-state=checked])]:border-primary cursor-pointer text-sm">
+                        <Label htmlFor="upload-difficulty-hard" className="flex items-center justify-center rounded-md border-2 border-muted bg-popover p-3 hover:bg-accent hover:text-accent-foreground peer-data-[state=checked]:border-primary peer-data-[state=checked]:bg-primary peer-data-[state=checked]:text-primary-foreground cursor-pointer text-sm">
                         Hard
                         </Label>
                     </FormItem>

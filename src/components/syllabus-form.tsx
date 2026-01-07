@@ -128,21 +128,21 @@ export function SyllabusForm({ setMcqs, setLoading, setError }: SyllabusFormProp
                 >
                   <FormItem>
                     <RadioGroupItem value="Foundation" id="level-foundation" className="sr-only" />
-                    <Label htmlFor="level-foundation" className="flex flex-col items-center justify-between rounded-md border-2 border-muted bg-popover p-4 hover:bg-accent hover:text-accent-foreground peer-data-[state=checked]:border-primary peer-data-[state=checked]:bg-primary peer-data-[state=checked]:text-primary-foreground [&:has([data-state=checked])]:border-primary cursor-pointer">
+                    <Label htmlFor="level-foundation" className="flex flex-col items-center justify-between rounded-md border-2 border-muted bg-popover p-4 hover:bg-accent hover:text-accent-foreground peer-data-[state=checked]:border-primary peer-data-[state=checked]:bg-primary peer-data-[state=checked]:text-primary-foreground cursor-pointer">
                       <GraduationCap className="mb-3 h-6 w-6" />
                       Foundation
                     </Label>
                   </FormItem>
                   <FormItem>
                     <RadioGroupItem value="Intermediate" id="level-intermediate" className="sr-only" />
-                    <Label htmlFor="level-intermediate" className="flex flex-col items-center justify-between rounded-md border-2 border-muted bg-popover p-4 hover:bg-accent hover:text-accent-foreground peer-data-[state=checked]:border-primary peer-data-[state=checked]:bg-primary peer-data-[state=checked]:text-primary-foreground [&:has([data-state=checked])]:border-primary cursor-pointer">
+                    <Label htmlFor="level-intermediate" className="flex flex-col items-center justify-between rounded-md border-2 border-muted bg-popover p-4 hover:bg-accent hover:text-accent-foreground peer-data-[state=checked]:border-primary peer-data-[state=checked]:bg-primary peer-data-[state=checked]:text-primary-foreground cursor-pointer">
                       <BookCheck className="mb-3 h-6 w-6" />
                       Intermediate
                     </Label>
                   </FormItem>
                   <FormItem>
                     <RadioGroupItem value="Final" id="level-final" className="sr-only" />
-                    <Label htmlFor="level-final" className="flex flex-col items-center justify-between rounded-md border-2 border-muted bg-popover p-4 hover:bg-accent hover:text-accent-foreground peer-data-[state=checked]:border-primary peer-data-[state=checked]:bg-primary peer-data-[state=checked]:text-primary-foreground [&:has([data-state=checked])]:border-primary cursor-pointer">
+                    <Label htmlFor="level-final" className="flex flex-col items-center justify-between rounded-md border-2 border-muted bg-popover p-4 hover:bg-accent hover:text-accent-foreground peer-data-[state=checked]:border-primary peer-data-[state=checked]:bg-primary peer-data-[state=checked]:text-primary-foreground cursor-pointer">
                       <Brain className="mb-3 h-6 w-6" />
                       Final
                     </Label>
@@ -169,13 +169,13 @@ export function SyllabusForm({ setMcqs, setLoading, setError }: SyllabusFormProp
                   >
                     <FormItem>
                       <RadioGroupItem value="Group I" id="group-i" className="sr-only" />
-                      <Label htmlFor="group-i" className="flex items-center justify-center rounded-md border-2 border-muted bg-popover p-4 hover:bg-accent hover:text-accent-foreground peer-data-[state=checked]:border-primary peer-data-[state=checked]:bg-primary peer-data-[state=checked]:text-primary-foreground [&:has([data-state=checked])]:border-primary cursor-pointer">
+                      <Label htmlFor="group-i" className="flex items-center justify-center rounded-md border-2 border-muted bg-popover p-4 hover:bg-accent hover:text-accent-foreground peer-data-[state=checked]:border-primary peer-data-[state=checked]:bg-primary peer-data-[state=checked]:text-primary-foreground cursor-pointer">
                         Group I
                       </Label>
                     </FormItem>
                     <FormItem>
                       <RadioGroupItem value="Group II" id="group-ii" className="sr-only" />
-                      <Label htmlFor="group-ii" className="flex items-center justify-center rounded-md border-2 border-muted bg-popover p-4 hover:bg-accent hover:text-accent-foreground peer-data-[state=checked]:border-primary peer-data-[state=checked]:bg-primary peer-data-[state=checked]:text-primary-foreground [&:has([data-state=checked])]:border-primary cursor-pointer">
+                      <Label htmlFor="group-ii" className="flex items-center justify-center rounded-md border-2 border-muted bg-popover p-4 hover:bg-accent hover:text-accent-foreground peer-data-[state=checked]:border-primary peer-data-[state=checked]:bg-primary peer-data-[state=checked]:text-primary-foreground cursor-pointer">
                         Group II
                       </Label>
                     </FormItem>
@@ -227,19 +227,19 @@ export function SyllabusForm({ setMcqs, setLoading, setError }: SyllabusFormProp
                     >
                     <FormItem>
                         <RadioGroupItem value="Easy" id="difficulty-easy" className="sr-only" />
-                        <Label htmlFor="difficulty-easy" className="flex items-center justify-center rounded-md border-2 border-muted bg-popover p-3 hover:bg-accent hover:text-accent-foreground peer-data-[state=checked]:border-primary peer-data-[state=checked]:bg-primary peer-data-[state=checked]:text-primary-foreground [&:has([data-state=checked])]:border-primary cursor-pointer text-sm">
+                        <Label htmlFor="difficulty-easy" className="flex items-center justify-center rounded-md border-2 border-muted bg-popover p-3 hover:bg-accent hover:text-accent-foreground peer-data-[state=checked]:border-primary peer-data-[state=checked]:bg-primary peer-data-[state=checked]:text-primary-foreground cursor-pointer text-sm">
                         Easy
                         </Label>
                     </FormItem>
                     <FormItem>
                         <RadioGroupItem value="Medium" id="difficulty-medium" className="sr-only" />
-                        <Label htmlFor="difficulty-medium" className="flex items-center justify-center rounded-md border-2 border-muted bg-popover p-3 hover:bg-accent hover:text-accent-foreground peer-data-[state=checked]:border-primary peer-data-[state=checked]:bg-primary peer-data-[state=checked]:text-primary-foreground [&:has([data-state=checked])]:border-primary cursor-pointer text-sm">
+                        <Label htmlFor="difficulty-medium" className="flex items-center justify-center rounded-md border-2 border-muted bg-popover p-3 hover:bg-accent hover:text-accent-foreground peer-data-[state=checked]:border-primary peer-data-[state=checked]:bg-primary peer-data-[state=checked]:text-primary-foreground cursor-pointer text-sm">
                         Medium
                         </Label>
                     </FormItem>
                     <FormItem>
                         <RadioGroupItem value="Hard" id="difficulty-hard" className="sr-only" />
-                        <Label htmlFor="difficulty-hard" className="flex items-center justify-center rounded-md border-2 border-muted bg-popover p-3 hover:bg-accent hover:text-accent-foreground peer-data-[state=checked]:border-primary peer-data-[state=checked]:bg-primary peer-data-[state=checked]:text-primary-foreground [&:has([data-state=checked])]:border-primary cursor-pointer text-sm">
+                        <Label htmlFor="difficulty-hard" className="flex items-center justify-center rounded-md border-2 border-muted bg-popover p-3 hover:bg-accent hover:text-accent-foreground peer-data-[state=checked]:border-primary peer-data-[state=checked]:bg-primary peer-data-[state=checked]:text-primary-foreground cursor-pointer text-sm">
                         Hard
                         </Label>
                     </FormItem>
