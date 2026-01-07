@@ -1,10 +1,10 @@
 export const caExams = {
   Foundation: {
     papers: [
-      { name: 'Paper 1: Principles & Practice of Accounting', value: 'Principles & Practice of Accounting' },
-      { name: 'Paper 2: Business Laws & Business Correspondence & Reporting (BCR)', value: 'Business Laws & Business Correspondence & Reporting' },
-      { name: 'Paper 3: Business Mathematics, Logical Reasoning & Statistics', value: 'Business Mathematics, Logical Reasoning & Statistics' },
-      { name: 'Paper 4: Business Economics & Business & Commercial Knowledge (BCK)', value: 'Business Economics & Business & Commercial Knowledge' },
+      { name: 'Paper 1: Accounting', value: 'Accounting' },
+      { name: 'Paper 2: Business Laws', value: 'Business Laws' },
+      { name: 'Paper 3: Quantitative Aptitude', value: 'Quantitative Aptitude' },
+      { name: 'Paper 4: Business Economics', value: 'Business Economics' },
     ],
   },
   Intermediate: {
@@ -19,7 +19,7 @@ export const caExams = {
       papers: [
         { name: 'Paper 4: Cost & Management Accounting', value: 'Cost & Management Accounting' },
         { name: 'Paper 5: Auditing & Ethics', value: 'Auditing & Ethics' },
-        { name: 'Paper 6: Financial Management & Strategic Management (FM & SM)', value: 'Financial Management & Strategic Management' },
+        { name: 'Paper 6: Financial Management & Strategic Management', value: 'Financial Management & Strategic Management' },
       ],
     },
   },
@@ -27,15 +27,15 @@ export const caExams = {
     'Group I': {
       papers: [
         { name: 'Paper 1: Financial Reporting', value: 'Financial Reporting' },
-        { name: 'Paper 2: Advanced Financial Management (AFM)', value: 'Advanced Financial Management' },
-        { name: 'Paper 3: Advanced Auditing, Assurance & Professional Ethics', value: 'Advanced Auditing, Assurance & Professional Ethics' },
+        { name: 'Paper 2: Strategic Financial Management (SFM)', value: 'Strategic Financial Management' },
+        { name: 'Paper 3: Advanced Auditing & Professional Ethics', value: 'Advanced Auditing & Professional Ethics' },
       ],
     },
     'Group II': {
       papers: [
-        { name: 'Paper 4: Direct Tax Laws & International Taxation', value: 'Direct Tax Laws & International Taxation' },
-        { name: 'Paper 5: Indirect Tax Laws', value: 'Indirect Tax Laws' },
-        { name: 'Paper 6: Integrated Business Solutions (Multidisciplinary Case Study)', value: 'Integrated Business Solutions' },
+        { name: 'Paper 4: Corporate & Economic Laws', value: 'Corporate & Economic Laws' },
+        { name: 'Paper 5: Strategic Cost Management & Performance Evaluation (SCMP)', value: 'Strategic Cost Management & Performance Evaluation' },
+        { name: 'Paper 6: Integrated Business Solutions', value: 'Integrated Business Solutions' },
       ],
     },
   },
