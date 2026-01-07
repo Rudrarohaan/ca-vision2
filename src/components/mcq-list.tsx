@@ -5,10 +5,9 @@ import type { GenerateMcqsFromSyllabusOutput, MCQ } from '@/ai/flows/generate-mc
 import { McqCard } from './mcq-card';
 import { Button } from './ui/button';
 import { Card, CardContent, CardHeader, CardFooter, CardTitle, CardDescription } from './ui/card';
-import { ArrowLeft, ArrowRight, Flag } from 'lucide-react';
+import { ArrowLeft, ArrowRight } from 'lucide-react';
 import { Progress } from './ui/progress';
-import { cn } from '@/lib/utils';
-import { ScrollArea } from './ui/scroll-area';
+import { useRouter } from 'next/navigation';
 
 type McqListProps = {
   mcqs: GenerateMcqsFromSyllabusOutput;
@@ -16,8 +15,9 @@ type McqListProps = {
 };
 
 export function McqList({ mcqs: initialMcqs, onReset }: McqListProps) {
-  const [mcqs, setMcqs] = useState<(MCQ & { userAnswer?: string | null; })[]>(initialMcqs.map(mcq => ({...mcq})));
+  const [mcqs, setMcqs] = useState<(MCQ & { userAnswer?: string | null; })[]>(initialMcqs.map(mcq => ({...mcq, userAnswer: null})));
   const [currentQuestionIndex, setCurrentQuestionIndex] = useState(0);
+  const router = useRouter();
 
   const handleOptionSelect = (option: string) => {
     const newMcqs = [...mcqs];
@@ -38,11 +38,9 @@ export function McqList({ mcqs: initialMcqs, onReset }: McqListProps) {
   };
 
   const handleSubmit = () => {
-    // Here you would typically navigate to a review page and pass the mcqs state.
-    // For now, we'll just log it and reset.
-    console.log('Quiz submitted!', mcqs);
-    alert('Quiz submitted! Check the console for your answers. A review page would be shown here.');
-    onReset();
+    // Persist state to localStorage for the review page to access
+    localStorage.setItem('quizState', JSON.stringify(mcqs));
+    router.push('/review');
   };
   
   const currentMcq = mcqs[currentQuestionIndex];
@@ -56,6 +54,7 @@ export function McqList({ mcqs: initialMcqs, onReset }: McqListProps) {
           <CardHeader>
               <div className="flex justify-between items-center">
                 <h1 className="font-headline text-3xl font-bold">Your Generated Questions</h1>
+                <Button variant="outline" size="sm" onClick={onReset}>New Quiz</Button>
               </div>
               <div className="flex justify-between items-center">
                 <p className="text-muted-foreground">
@@ -78,7 +77,7 @@ export function McqList({ mcqs: initialMcqs, onReset }: McqListProps) {
                   Previous
               </Button>
               {currentQuestionIndex === mcqs.length - 1 ? (
-                  <Button onClick={handleSubmit} disabled={!allAnswered}>
+                  <Button onClick={handleSubmit}>
                       Submit Quiz
                   </Button>
               ) : (
