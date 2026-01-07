@@ -19,7 +19,7 @@ import { Slider } from '@/components/ui/slider';
 import { generateMcqsFromUploadedMaterialAction } from '@/app/actions';
 import type { GenerateMcqsFromUploadedMaterialOutput } from '@/ai/flows/generate-mcqs-from-uploaded-material';
 import { useToast } from '@/hooks/use-toast';
-import { BookCheck, Brain, HardHat, GraduationCap, ArrowRight, UploadCloud, File, X } from 'lucide-react';
+import { ArrowRight, UploadCloud, File, X } from 'lucide-react';
 import { Label } from '@/components/ui/label';
 
 const MAX_FILE_SIZE = 5 * 1024 * 1024; // 5MB
@@ -34,7 +34,6 @@ const formSchema = z.object({
       (file) => ACCEPTED_FILE_TYPES.includes(file?.type),
       '.pdf, .docx, and .txt files are accepted.'
     ),
-  level: z.enum(['Foundation', 'Intermediate', 'Final']),
   subject: z.string().min(1, 'Please enter a subject.'),
   difficulty: z.enum(['Easy', 'Medium', 'Hard']),
   count: z.number().min(5).max(50),
@@ -54,7 +53,6 @@ export function UploadForm({ setMcqs, setLoading, setError }: UploadFormProps) {
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
     defaultValues: {
-      level: 'Foundation',
       difficulty: 'Medium',
       count: 10,
       subject: '',
@@ -90,7 +88,7 @@ export function UploadForm({ setMcqs, setLoading, setError }: UploadFormProps) {
     setError(null);
     try {
       const fileDataUri = await fileToDataUri(values.file);
-      const result = await generateMcqsFromUploadedMaterialAction({ ...values, fileDataUri });
+      const result = await generateMcqsFromUploadedMaterialAction({ ...values, fileDataUri, level: 'Intermediate' });
       if (result && result.length > 0) {
         setMcqs(result);
       } else {
@@ -160,46 +158,6 @@ export function UploadForm({ setMcqs, setLoading, setError }: UploadFormProps) {
           )}
         />
         
-        <FormField
-          control={form.control}
-          name="level"
-          render={({ field }) => (
-            <FormItem className="space-y-3">
-              <FormLabel className="text-lg font-semibold">Exam Level</FormLabel>
-              <FormControl>
-                <RadioGroup
-                  onValueChange={field.onChange}
-                  defaultValue={field.value}
-                  className="grid grid-cols-3 gap-4"
-                >
-                  <FormItem>
-                    <RadioGroupItem value="Foundation" id="upload-level-foundation" className="sr-only" />
-                    <Label htmlFor="upload-level-foundation" className="flex flex-col items-center justify-between rounded-md border-2 border-muted bg-popover p-4 hover:bg-accent hover:text-accent-foreground peer-data-[state=checked]:border-primary peer-data-[state=checked]:bg-primary/10 [&:has([data-state=checked])]:border-primary cursor-pointer">
-                      <GraduationCap className="mb-3 h-6 w-6" />
-                      Foundation
-                    </Label>
-                  </FormItem>
-                  <FormItem>
-                    <RadioGroupItem value="Intermediate" id="upload-level-intermediate" className="sr-only" />
-                    <Label htmlFor="upload-level-intermediate" className="flex flex-col items-center justify-between rounded-md border-2 border-muted bg-popover p-4 hover:bg-accent hover:text-accent-foreground peer-data-[state=checked]:border-primary peer-data-[state=checked]:bg-primary/10 [&:has([data-state=checked])]:border-primary cursor-pointer">
-                      <BookCheck className="mb-3 h-6 w-6" />
-                      Intermediate
-                    </Label>
-                  </FormItem>
-                  <FormItem>
-                    <RadioGroupItem value="Final" id="upload-level-final" className="sr-only" />
-                    <Label htmlFor="upload-level-final" className="flex flex-col items-center justify-between rounded-md border-2 border-muted bg-popover p-4 hover:bg-accent hover:text-accent-foreground peer-data-[state=checked]:border-primary peer-data-[state=checked]:bg-primary/10 [&:has([data-state=checked])]:border-primary cursor-pointer">
-                      <Brain className="mb-3 h-6 w-6" />
-                      Final
-                    </Label>
-                  </FormItem>
-                </RadioGroup>
-              </FormControl>
-              <FormMessage />
-            </FormItem>
-          )}
-        />
-
         <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
             <FormField
             control={form.control}
