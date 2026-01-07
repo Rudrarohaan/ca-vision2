@@ -4,10 +4,11 @@ import { useState } from 'react';
 import type { GenerateMcqsFromSyllabusOutput, MCQ } from '@/ai/flows/generate-mcqs-from-syllabus';
 import { McqCard } from './mcq-card';
 import { Button } from './ui/button';
-import { Card, CardContent, CardHeader, CardFooter } from './ui/card';
+import { Card, CardContent, CardHeader, CardFooter, CardTitle, CardDescription } from './ui/card';
 import { ArrowLeft, ArrowRight, Flag } from 'lucide-react';
 import { Progress } from './ui/progress';
 import { cn } from '@/lib/utils';
+import { ScrollArea } from './ui/scroll-area';
 
 type McqListProps = {
   mcqs: GenerateMcqsFromSyllabusOutput;
@@ -24,9 +25,9 @@ export function McqList({ mcqs: initialMcqs, onReset }: McqListProps) {
     setMcqs(newMcqs);
   };
 
-  const toggleFlag = () => {
+  const toggleFlag = (index: number) => {
     const newMcqs = [...mcqs];
-    newMcqs[currentQuestionIndex].flagged = !newMcqs[currentQuestionIndex].flagged;
+    newMcqs[index].flagged = !newMcqs[index].flagged;
     setMcqs(newMcqs);
   };
 
@@ -56,7 +57,7 @@ export function McqList({ mcqs: initialMcqs, onReset }: McqListProps) {
 
 
   return (
-    <div className="container mx-auto max-w-4xl py-8">
+    <div className="container mx-auto max-w-6xl py-8">
       <div className="flex flex-col md:flex-row gap-8 items-start">
         <div className="flex-1 w-full">
             <Card>
@@ -71,7 +72,7 @@ export function McqList({ mcqs: initialMcqs, onReset }: McqListProps) {
                       <p className="text-muted-foreground">
                           Question {currentQuestionIndex + 1} of {mcqs.length}
                       </p>
-                      <Button onClick={toggleFlag} variant="ghost" size="sm" className={cn(currentMcq.flagged && 'text-primary')}>
+                      <Button onClick={() => toggleFlag(currentQuestionIndex)} variant="ghost" size="sm" className={cn(currentMcq.flagged && 'text-primary')}>
                           <Flag className="mr-2 h-4 w-4" />
                           {currentMcq.flagged ? 'Flagged' : 'Flag for Review'}
                       </Button>
@@ -104,6 +105,41 @@ export function McqList({ mcqs: initialMcqs, onReset }: McqListProps) {
                 </CardFooter>
             </Card>
         </div>
+
+        <aside className="w-full md:w-64">
+          <Card>
+            <CardHeader>
+              <CardTitle>Question Palette</CardTitle>
+              <CardDescription>Click to jump to a question.</CardDescription>
+            </CardHeader>
+            <CardContent>
+              <ScrollArea className="h-64">
+                <div className="grid grid-cols-5 gap-2">
+                  {mcqs.map((mcq, index) => (
+                    <Button
+                      key={mcq.id}
+                      variant={
+                        currentQuestionIndex === index
+                          ? 'default'
+                          : mcq.userAnswer
+                          ? 'secondary'
+                          : 'outline'
+                      }
+                      className={cn(
+                        'relative h-10 w-10 p-0',
+                        mcq.flagged && 'ring-2 ring-primary ring-offset-2'
+                      )}
+                      onClick={() => setCurrentQuestionIndex(index)}
+                    >
+                      {index + 1}
+                      {mcq.flagged && <Flag className="absolute top-0 right-0 h-3 w-3 -mt-1 -mr-1 text-primary fill-primary" />}
+                    </Button>
+                  ))}
+                </div>
+              </ScrollArea>
+            </CardContent>
+          </Card>
+        </aside>
       </div>
     </div>
   );
