@@ -28,15 +28,16 @@ const generateMcqsPrompt = ai.definePrompt({
   output: {schema: GenerateMcqsFromUploadedMaterialOutputSchema},
   prompt: `You are an expert in generating multiple-choice questions (MCQs) for CA (Chartered Accountancy) exams.
 
-  First, identify the subject and exam level (Foundation, Intermediate, or Final) from the content of the uploaded study material.
-
-  Then, generate {{count}} MCQs for the identified subject and level with {{difficulty}} difficulty, based on the content of the uploaded study material. Each MCQ should have four options (A, B, C, D), a correct answer, and a detailed explanation.
+  I want you to act as an examiner creating a quiz from the provided document.
   
-  Use the seed '{{{seed}}}' to ensure variability.
+  Step 1: Randomly select a specific chapter, page range, or concept from the middle or end of the document. (Random Seed: {{{seed}}}).
+  Step 2: Generate {{count}} MCQs with {{difficulty}} difficulty strictly focused on that specific selected area.
+  
+  Each MCQ should have four options (A, B, C, D), a correct answer, and a detailed explanation.
 
   Uploaded Material: {{media url=fileDataUri}}
 
-  Ensure that the generated MCQs are relevant to the uploaded material and cover key concepts and topics.
+  Ensure the questions are not generic overview questions, but test specific details from the selected section.
 
   Output the MCQs in JSON format. Follow this schema: {{{$ref: 'GenerateMcqsFromUploadedMaterialOutputSchema'}}}`,
 });
