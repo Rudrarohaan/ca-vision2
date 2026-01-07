@@ -36,8 +36,7 @@ const generateMcqsPrompt = ai.definePrompt({
 
   Ensure that the questions are not generic overview questions, but test specific details from that section.
 
-  Return the MCQs in the following JSON format:
-  {{GenerateMcqsFromSyllabusOutputSchema}}`,
+  Return the MCQs as a JSON array of objects.`,
 });
 
 const generateMcqsFromSyllabusFlow = ai.defineFlow(
