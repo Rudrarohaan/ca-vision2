@@ -25,12 +25,8 @@ const generateMcqsPrompt = ai.definePrompt({
   name: 'generateMcqsFromSyllabusPrompt',
   input: {schema: GenerateMcqsFromSyllabusInputSchema},
   output: {schema: GenerateMcqsFromSyllabusOutputSchema},
-  prompt: `You are an expert in creating multiple-choice questions (MCQs) for CA (Chartered Accountancy) exams.
+  prompt: `Generate {{{count}}} MCQs with {{{difficulty}}} difficulty from the syllabus for the {{{level}}} level, {{{subject}}} subject.
 
-  I want you to act as an examiner creating a quiz.
-  
-  Generate {{{count}}} MCQs with {{{difficulty}}} difficulty from the syllabus for the {{{level}}} level, {{{subject}}} subject. Use the seed '{{{seed}}}' to ensure variability.
-  
   The MCQs should have four options (A, B, C, D), a correct answer, and a brief explanation.
 
   Return the MCQs as a JSON array of objects.`,
