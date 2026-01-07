@@ -81,7 +81,7 @@ export default function ReviewPage() {
 
 
   return (
-    <div className="container mx-auto max-w-3xl py-8">
+    <div className="container mx-auto py-8">
       <Card>
         <CardHeader className="text-center">
           <CardTitle className="font-headline text-4xl font-bold">Quiz Results</CardTitle>
