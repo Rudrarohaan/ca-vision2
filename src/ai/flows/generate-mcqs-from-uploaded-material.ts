@@ -39,7 +39,7 @@ const generateMcqsPrompt = ai.definePrompt({
 
   Ensure the questions are not generic overview questions, but test specific details from the selected section.
 
-  Output the MCQs in JSON format. Follow this schema: {{{$ref: 'GenerateMcqsFromUploadedMaterialOutputSchema'}}}`,
+  Output the MCQs in JSON format.`,
 });
 
 const generateMcqsFromUploadedMaterialFlow = ai.defineFlow(
