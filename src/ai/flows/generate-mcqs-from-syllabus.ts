@@ -29,12 +29,9 @@ const generateMcqsPrompt = ai.definePrompt({
 
   I want you to act as an examiner creating a quiz.
   
-  Step 1: Randomly select a specific chapter, topic, or concept from the syllabus for the {{{level}}} level, {{{subject}}} subject. (Random Seed: {{{seed}}}).
-  Step 2: Generate {{{count}}} MCQs with {{{difficulty}}} difficulty strictly focused on that specific selected area.
+  Generate {{{count}}} MCQs with {{{difficulty}}} difficulty from the syllabus for the {{{level}}} level, {{{subject}}} subject. Use the seed '{{{seed}}}' to ensure variability.
   
   The MCQs should have four options (A, B, C, D), a correct answer, and a brief explanation.
-
-  Ensure that the questions are not generic overview questions, but test specific details from that section.
 
   Return the MCQs as a JSON array of objects.`,
 });
