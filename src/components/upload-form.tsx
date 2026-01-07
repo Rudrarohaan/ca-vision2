@@ -20,6 +20,7 @@ import { generateMcqsFromUploadedMaterialAction } from '@/app/actions';
 import type { GenerateMcqsFromUploadedMaterialOutput } from '@/ai/flows/generate-mcqs-from-uploaded-material';
 import { useToast } from '@/hooks/use-toast';
 import { BookCheck, Brain, HardHat, GraduationCap, ArrowRight, UploadCloud, File, X } from 'lucide-react';
+import { Label } from '@/components/ui/label';
 
 const MAX_FILE_SIZE = 5 * 1024 * 1024; // 5MB
 const ACCEPTED_FILE_TYPES = ['application/pdf', 'application/vnd.openxmlformats-officedocument.wordprocessingml.document', 'text/plain'];
@@ -56,6 +57,7 @@ export function UploadForm({ setMcqs, setLoading, setError }: UploadFormProps) {
       level: 'Foundation',
       difficulty: 'Medium',
       count: 10,
+      subject: '',
     },
   });
   
@@ -260,7 +262,7 @@ export function UploadForm({ setMcqs, setLoading, setError }: UploadFormProps) {
             />
         </div>
 
-        <Button type="submit" size="lg" className="w-full text-lg font-bold glow-primary transition-transform hover:scale-105">
+        <Button type="submit" size="lg" className="w-full text-lg font-bold glow-primary transition-transform hover:scale-105 disabled:bg-gray-400 disabled:cursor-not-allowed disabled:shadow-none disabled:transform-none" disabled={!form.formState.isValid}>
           Generate MCQs <ArrowRight className="ml-2 h-5 w-5" />
         </Button>
       </form>

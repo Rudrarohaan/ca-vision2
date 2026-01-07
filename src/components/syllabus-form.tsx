@@ -274,7 +274,7 @@ export function SyllabusForm({ setMcqs, setLoading, setError }: SyllabusFormProp
             />
         </div>
 
-        <Button type="submit" size="lg" className="w-full text-lg font-bold glow-primary transition-transform hover:scale-105">
+        <Button type="submit" size="lg" className="w-full text-lg font-bold glow-primary transition-transform hover:scale-105 disabled:bg-gray-400 disabled:cursor-not-allowed disabled:shadow-none disabled:transform-none" disabled={!form.formState.isValid}>
           Generate MCQs <ArrowRight className="ml-2 h-5 w-5" />
         </Button>
       </form>
