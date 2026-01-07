@@ -19,7 +19,7 @@ import { Slider } from '@/components/ui/slider';
 import { generateMcqsFromUploadedMaterialAction } from '@/app/actions';
 import type { GenerateMcqsFromUploadedMaterialOutput } from '@/ai/flows/generate-mcqs-from-uploaded-material';
 import { useToast } from '@/hooks/use-toast';
-import { ArrowRight, UploadCloud, File, X } from 'lucide-react';
+import { ArrowRight, UploadCloud, File, X, GraduationCap, BookCheck, Brain } from 'lucide-react';
 import { Label } from '@/components/ui/label';
 
 const MAX_FILE_SIZE = 5 * 1024 * 1024; // 5MB
