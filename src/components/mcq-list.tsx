@@ -5,8 +5,9 @@ import type { GenerateMcqsFromSyllabusOutput, MCQ } from '@/ai/flows/generate-mc
 import { McqCard } from './mcq-card';
 import { Button } from './ui/button';
 import { Card, CardContent, CardHeader, CardFooter } from './ui/card';
-import { Repeat, ArrowLeft, ArrowRight } from 'lucide-react';
+import { ArrowLeft, ArrowRight, Flag } from 'lucide-react';
 import { Progress } from './ui/progress';
+import { cn } from '@/lib/utils';
 
 type McqListProps = {
   mcqs: GenerateMcqsFromSyllabusOutput;
@@ -14,12 +15,18 @@ type McqListProps = {
 };
 
 export function McqList({ mcqs: initialMcqs, onReset }: McqListProps) {
-  const [mcqs, setMcqs] = useState<(MCQ & { userAnswer?: string | null })[]>(initialMcqs);
+  const [mcqs, setMcqs] = useState<(MCQ & { userAnswer?: string | null; flagged?: boolean })[]>(initialMcqs.map(mcq => ({...mcq, flagged: false})));
   const [currentQuestionIndex, setCurrentQuestionIndex] = useState(0);
 
   const handleOptionSelect = (option: string) => {
     const newMcqs = [...mcqs];
     newMcqs[currentQuestionIndex].userAnswer = option;
+    setMcqs(newMcqs);
+  };
+
+  const toggleFlag = () => {
+    const newMcqs = [...mcqs];
+    newMcqs[currentQuestionIndex].flagged = !newMcqs[currentQuestionIndex].flagged;
     setMcqs(newMcqs);
   };
 
@@ -54,14 +61,19 @@ export function McqList({ mcqs: initialMcqs, onReset }: McqListProps) {
         <div className="flex-1 w-full">
             <Card>
                 <CardHeader>
-                    <h1 className="font-headline text-3xl font-bold">Your Generated Questions</h1>
+                    <div className="flex justify-between items-center">
+                      <h1 className="font-headline text-3xl font-bold">Your Generated Questions</h1>
+                      <Button onClick={onReset} variant="outline" size="sm">
+                          New Quiz
+                      </Button>
+                    </div>
                     <div className="flex justify-between items-center">
                       <p className="text-muted-foreground">
                           Question {currentQuestionIndex + 1} of {mcqs.length}
                       </p>
-                      <Button onClick={onReset} variant="outline" size="sm">
-                          <Repeat className="mr-2 h-4 w-4" />
-                          New Quiz
+                      <Button onClick={toggleFlag} variant="ghost" size="sm" className={cn(currentMcq.flagged && 'text-primary')}>
+                          <Flag className="mr-2 h-4 w-4" />
+                          {currentMcq.flagged ? 'Flagged' : 'Flag for Review'}
                       </Button>
                     </div>
                     <Progress value={progress} className="w-full mt-2" />
