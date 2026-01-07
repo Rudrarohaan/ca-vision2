@@ -45,7 +45,7 @@ export function McqGenerator() {
   
   return (
     <div className="flex flex-1 items-center justify-center p-4">
-      <div className="w-full max-w-3xl">
+      <div className="w-full max-w-5xl">
         <div className="flex flex-col items-center text-center mb-8">
           <h1 className="font-headline text-4xl font-extrabold tracking-tight lg:text-5xl">
             AI-Powered MCQ Generator
