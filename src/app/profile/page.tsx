@@ -195,159 +195,152 @@ export default function ProfilePage() {
   return (
     <div className="container mx-auto max-w-4xl py-8">
        <Form {...form}>
-        <form onSubmit={form.handleSubmit(onSubmit)} className="grid grid-cols-1 md:grid-cols-3 gap-8">
-            <div className="md:col-span-1">
-                 <Card>
-                    <CardHeader className="items-center">
-                        <div className="relative group">
-                            <Avatar className="h-24 w-24 mb-4 cursor-pointer" onClick={handleAvatarClick}>
-                                <AvatarImage src={form.watch('photoURL')} alt={form.getValues('displayName')} />
-                                <AvatarFallback>{getInitials(form.getValues('displayName'))}</AvatarFallback>
-                            </Avatar>
-                            <div className="absolute inset-0 h-24 w-24 mb-4 rounded-full flex items-center justify-center bg-black bg-opacity-50 opacity-0 group-hover:opacity-100 transition-opacity cursor-pointer" onClick={handleAvatarClick}>
-                                <Camera className="h-8 w-8 text-white" />
-                            </div>
-                             <input type="file" ref={fileInputRef} onChange={handleFileChange} accept="image/*" className="hidden" />
+        <form onSubmit={form.handleSubmit(onSubmit)}>
+            <Card>
+                <CardHeader className="flex flex-row items-center gap-6">
+                  <div className="flex flex-col items-center">
+                    <div className="relative group">
+                        <Avatar className="h-24 w-24 mb-2 cursor-pointer" onClick={handleAvatarClick}>
+                            <AvatarImage src={form.watch('photoURL')} alt={form.getValues('displayName')} />
+                            <AvatarFallback>{getInitials(form.getValues('displayName'))}</AvatarFallback>
+                        </Avatar>
+                        <div className="absolute inset-0 h-24 w-24 rounded-full flex items-center justify-center bg-black bg-opacity-50 opacity-0 group-hover:opacity-100 transition-opacity cursor-pointer" onClick={handleAvatarClick}>
+                            <Camera className="h-8 w-8 text-white" />
                         </div>
-                        {uploadProgress !== null && (
-                            <div className="w-full px-4">
-                                <Progress value={uploadProgress} className="h-2" />
-                                <p className="text-xs text-center mt-1 text-muted-foreground">Uploading...</p>
-                            </div>
-                        )}
-                        <CardTitle className="font-headline text-2xl">{form.getValues('displayName')}</CardTitle>
-                        <CardDescription>{form.getValues('email')}</CardDescription>
-                    </CardHeader>
-                 </Card>
-            </div>
-            <div className="md:col-span-2">
-                <Card>
-                    <CardHeader>
+                          <input type="file" ref={fileInputRef} onChange={handleFileChange} accept="image/*" className="hidden" />
+                    </div>
+                    {uploadProgress !== null && (
+                        <div className="w-full px-4">
+                            <Progress value={uploadProgress} className="h-1 w-20" />
+                        </div>
+                    )}
+                  </div>
+                  <div className='space-y-1'>
                     <CardTitle className="font-headline text-3xl">Your Profile</CardTitle>
                     <CardDescription>
-                        Manage your personal information.
+                        Manage your personal information and preferences.
                     </CardDescription>
-                    </CardHeader>
-                    <CardContent className="space-y-6">
+                  </div>
+                </CardHeader>
+                <CardContent className="space-y-6">
+                <FormField
+                    control={form.control}
+                    name="displayName"
+                    render={({ field }) => (
+                    <FormItem>
+                        <FormLabel>Full Name</FormLabel>
+                        <FormControl>
+                        <Input placeholder="John Doe" {...field} />
+                        </FormControl>
+                        <FormMessage />
+                    </FormItem>
+                    )}
+                />
+                <FormField
+                    control={form.control}
+                    name="email"
+                    render={({ field }) => (
+                    <FormItem>
+                        <FormLabel>Email Address</FormLabel>
+                        <FormControl>
+                        <Input placeholder="m@example.com" {...field} disabled />
+                        </FormControl>
+                        <FormMessage />
+                    </FormItem>
+                    )}
+                />
+                  <FormField
+                    control={form.control}
+                    name="bio"
+                    render={({ field }) => (
+                    <FormItem>
+                        <FormLabel>Bio</FormLabel>
+                        <FormControl>
+                            <Textarea placeholder="Tell us a little bit about yourself" className="resize-none" {...field} />
+                        </FormControl>
+                        <FormMessage />
+                    </FormItem>
+                    )}
+                />
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                     <FormField
                         control={form.control}
-                        name="displayName"
+                        name="city"
                         render={({ field }) => (
-                        <FormItem>
-                            <FormLabel>Full Name</FormLabel>
+                            <FormItem>
+                            <FormLabel>City</FormLabel>
                             <FormControl>
-                            <Input placeholder="John Doe" {...field} />
+                                <Input placeholder="e.g., Mumbai" {...field} />
                             </FormControl>
                             <FormMessage />
-                        </FormItem>
+                            </FormItem>
                         )}
                     />
                     <FormField
                         control={form.control}
-                        name="email"
+                        name="caLevel"
                         render={({ field }) => (
                         <FormItem>
-                            <FormLabel>Email Address</FormLabel>
+                            <FormLabel>CA Level</FormLabel>
+                            <Select onValueChange={field.onChange} defaultValue={field.value}>
                             <FormControl>
-                            <Input placeholder="m@example.com" {...field} disabled />
+                                <SelectTrigger>
+                                <SelectValue placeholder="Select your level" />
+                                </SelectTrigger>
                             </FormControl>
+                            <SelectContent>
+                                <SelectItem value="Foundation">Foundation</SelectItem>
+                                <SelectItem value="Intermediate">Intermediate</SelectItem>
+                                <SelectItem value="Final">Final</SelectItem>
+                            </SelectContent>
+                            </Select>
                             <FormMessage />
                         </FormItem>
                         )}
                     />
-                     <FormField
-                        control={form.control}
-                        name="bio"
-                        render={({ field }) => (
-                        <FormItem>
-                            <FormLabel>Bio</FormLabel>
-                            <FormControl>
-                                <Textarea placeholder="Tell us a little bit about yourself" className="resize-none" {...field} />
-                            </FormControl>
-                            <FormMessage />
-                        </FormItem>
-                        )}
-                    />
-                     <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                        <FormField
+                  </div>
+                  <div>
+                    <Label className="text-sm font-medium">Social Links</Label>
+                    <div className="space-y-4 mt-2">
+                          <FormField
                             control={form.control}
-                            name="city"
+                            name="socialLinks.twitter"
                             render={({ field }) => (
                                 <FormItem>
-                                <FormLabel>City</FormLabel>
-                                <FormControl>
-                                    <Input placeholder="e.g., Mumbai" {...field} />
-                                </FormControl>
-                                <FormMessage />
+                                    <FormControl>
+                                          <div className="relative">
+                                            <Twitter className="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-muted-foreground" />
+                                            <Input placeholder="https://x.com/username" {...field} className="pl-10" />
+                                        </div>
+                                    </FormControl>
+                                    <FormMessage />
                                 </FormItem>
                             )}
                         />
                         <FormField
                             control={form.control}
-                            name="caLevel"
+                            name="socialLinks.linkedin"
                             render={({ field }) => (
-                            <FormItem>
-                                <FormLabel>CA Level</FormLabel>
-                                <Select onValueChange={field.onChange} defaultValue={field.value}>
-                                <FormControl>
-                                    <SelectTrigger>
-                                    <SelectValue placeholder="Select your level" />
-                                    </SelectTrigger>
-                                </FormControl>
-                                <SelectContent>
-                                    <SelectItem value="Foundation">Foundation</SelectItem>
-                                    <SelectItem value="Intermediate">Intermediate</SelectItem>
-                                    <SelectItem value="Final">Final</SelectItem>
-                                </SelectContent>
-                                </Select>
-                                <FormMessage />
-                            </FormItem>
+                                <FormItem>
+                                    <FormControl>
+                                        <div className="relative">
+                                            <Linkedin className="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-muted-foreground" />
+                                            <Input placeholder="https://linkedin.com/in/username" {...field} className="pl-10" />
+                                        </div>
+                                    </FormControl>
+                                    <FormMessage />
+                                </FormItem>
                             )}
                         />
-                     </div>
-                      <div>
-                        <Label className="text-sm font-medium">Social Links</Label>
-                        <div className="space-y-4 mt-2">
-                             <FormField
-                                control={form.control}
-                                name="socialLinks.twitter"
-                                render={({ field }) => (
-                                    <FormItem>
-                                        <FormControl>
-                                             <div className="relative">
-                                                <Twitter className="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-muted-foreground" />
-                                                <Input placeholder="https://x.com/username" {...field} className="pl-10" />
-                                            </div>
-                                        </FormControl>
-                                        <FormMessage />
-                                    </FormItem>
-                                )}
-                            />
-                            <FormField
-                                control={form.control}
-                                name="socialLinks.linkedin"
-                                render={({ field }) => (
-                                    <FormItem>
-                                        <FormControl>
-                                            <div className="relative">
-                                                <Linkedin className="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-muted-foreground" />
-                                                <Input placeholder="https://linkedin.com/in/username" {...field} className="pl-10" />
-                                            </div>
-                                        </FormControl>
-                                        <FormMessage />
-                                    </FormItem>
-                                )}
-                            />
-                        </div>
-                      </div>
+                    </div>
+                  </div>
 
-                    <Button type="submit" disabled={isSubmitting || uploadProgress !== null}>
-                        {(isSubmitting || uploadProgress !== null) && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-                        Save Changes
-                    </Button>
-                    </CardContent>
-                </Card>
-            </div>
+                <Button type="submit" disabled={isSubmitting || uploadProgress !== null}>
+                    {(isSubmitting || uploadProgress !== null) && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                    Save Changes
+                </Button>
+                </CardContent>
+            </Card>
           </form>
         </Form>
     </div>
