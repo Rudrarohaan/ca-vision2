@@ -33,6 +33,7 @@ function UserNav() {
           variant="outline"
           className="transition-all hover:bg-accent/50 hover:text-accent-foreground"
         >
+          <UserIcon className="mr-2 h-4 w-4" />
           Login
         </Button>
       </Link>
