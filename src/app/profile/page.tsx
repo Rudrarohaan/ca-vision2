@@ -22,11 +22,11 @@ import {
   FormLabel,
   FormMessage,
 } from '@/components/ui/form';
-import { useEffect, useState, useMemo } from 'react';
+import { useEffect, useState, useMemo, useRef } from 'react';
 import { updateUserProfileAction } from '@/app/actions';
 import { useToast } from '@/hooks/use-toast';
 import { useRouter } from 'next/navigation';
-import { Loader2, Linkedin, Twitter, Instagram, Upload } from 'lucide-react';
+import { Loader2, Linkedin, Twitter, Instagram, Upload, X } from 'lucide-react';
 import { Textarea } from '@/components/ui/textarea';
 import {
   Select,
@@ -61,7 +61,7 @@ export default function ProfilePage() {
   const router = useRouter();
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isUploading, setIsUploading] = useState(false);
-  const fileInputRef = React.useRef<HTMLInputElement>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   const firestore = useFirestore();
   const storage = useStorage();
@@ -314,10 +314,7 @@ export default function ProfilePage() {
                             <FormItem>
                                 <FormControl>
                                       <div className="relative">
-                                        <svg className="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-muted-foreground" aria-hidden="true" xmlns="http://www.w3.org/2000/svg" fill="currentColor" viewBox="0 0 24 24">
-                                            <path d="M13.6 13.6v4.889c0 .03.014.06.042.074a.09.09 0 0 0 .077.012l3.58-1.096a.1.1 0 0 0 .07-.098v-3.92a.1.1 0 0 0-.1-.1h-3.67a.1.1 0 0 0-.1.1ZM2 12a10 10 0 1 1 20 0 10 10 0 0 1-20 0Zm10.4-4.11a.1.1 0 0 0-.1.1v3.92a.1.1 0 0 0 .1.1h3.67a.1.1 0 0 0 .1-.1V7.99a.1.1 0 0 0-.1-.1h-3.67Z"/>
-                                            <path d="M10.33,20.33a10.011,10.011,0,0,1-4.93-2.583,1,1,0,0,1,.36-1.687,8.04,8.04,0,0,0,6.28-6.28,1,1,0,0,1,1.687-.36,10.011,10.011,0,0,1,2.583,4.93,1,1,0,0,1-1.687.36,8.04,8.04,0,0,0-6.28,6.28,1,1,0,0,1-.36,1.687Z"/>
-                                        </svg>
+                                        <X className="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-muted-foreground" />
                                         <Input placeholder="https://x.com/username" {...field} className="pl-10" />
                                     </div>
                                 </FormControl>
