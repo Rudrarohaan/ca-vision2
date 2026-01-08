@@ -22,11 +22,11 @@ import {
   FormLabel,
   FormMessage,
 } from '@/components/ui/form';
-import { useEffect, useState, useMemo, useRef } from 'react';
+import { useEffect, useState, useMemo } from 'react';
 import { updateUserProfileAction } from '@/app/actions';
 import { useToast } from '@/hooks/use-toast';
 import { useRouter } from 'next/navigation';
-import { Loader2, Linkedin, X, Upload, Camera, Instagram } from 'lucide-react';
+import { Loader2, Linkedin, Twitter, Instagram } from 'lucide-react';
 import { Textarea } from '@/components/ui/textarea';
 import {
   Select,
@@ -35,12 +35,10 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
-import { useFirestore, useDoc, useMemoFirebase, useStorage } from '@/firebase';
+import { useFirestore, useDoc, useMemoFirebase } from '@/firebase';
 import { doc } from 'firebase/firestore';
 import type { UserProfile } from '@/lib/types';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
-import { getDownloadURL, ref as storageRef, uploadBytesResumable } from 'firebase/storage';
-import { Progress } from '@/components/ui/progress';
 
 const profileSchema = z.object({
   displayName: z.string().min(1, 'Name is required.'),
@@ -48,12 +46,12 @@ const profileSchema = z.object({
   bio: z.string().max(160, 'Bio must be 160 characters or less.').optional(),
   city: z.string().optional(),
   caLevel: z.enum(['Foundation', 'Intermediate', 'Final']).optional(),
+  photoURL: z.string().url().optional(),
   socialLinks: z.object({
     twitter: z.string().url().optional().or(z.literal('')),
     linkedin: z.string().url().optional().or(z.literal('')),
     instagram: z.string().url().optional().or(z.literal('')),
   }).optional(),
-  photoURL: z.string().url().optional(),
 });
 
 export default function ProfilePage() {
@@ -61,11 +59,8 @@ export default function ProfilePage() {
   const { toast } = useToast();
   const router = useRouter();
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const [uploadProgress, setUploadProgress] = useState<number | null>(null);
+
   const firestore = useFirestore();
-  const storage = useStorage();
-  const fileInputRef = useRef<HTMLInputElement>(null);
-  const [hasDataLoaded, setHasDataLoaded] = useState(false);
 
   const userDocRef = useMemoFirebase(
     () => (user ? doc(firestore, 'users', user.uid) : null),
@@ -81,96 +76,45 @@ export default function ProfilePage() {
       email: '',
       bio: '',
       city: '',
+      photoURL: '',
       socialLinks: {
         twitter: '',
         linkedin: '',
         instagram: '',
       },
-      photoURL: '',
     },
   });
-  
-  const handleAvatarClick = () => {
-    fileInputRef.current?.click();
-  };
 
-  const handleFileChange = async (event: React.ChangeEvent<HTMLInputElement>) => {
-    const file = event.target.files?.[0];
-    if (!file || !user || !storage) return;
-
-    const fileRef = storageRef(storage, `profile-pictures/${user.uid}`);
-    const uploadTask = uploadBytesResumable(fileRef, file);
-
-    uploadTask.on('state_changed',
-      (snapshot) => {
-        const progress = (snapshot.bytesTransferred / snapshot.totalBytes) * 100;
-        setUploadProgress(progress);
-      },
-      (error) => {
-        console.error("Upload failed:", error);
-        toast({
-          title: 'Upload Failed',
-          description: 'Could not upload your profile picture. Please try again.',
-          variant: 'destructive',
-        });
-        setUploadProgress(null);
-      },
-      async () => {
-        const downloadURL = await getDownloadURL(uploadTask.snapshot.ref);
-        form.setValue('photoURL', downloadURL);
-        // Automatically save the profile when a new picture is uploaded
-        const result = await updateUserProfileAction({ uid: user.uid, data: { ...form.getValues(), photoURL: downloadURL } });
-        setUploadProgress(null);
-
-        if (result.success) {
-          toast({
-            title: 'Profile Picture Updated',
-            description: 'Your new picture has been saved.',
-          });
-        } else {
-           toast({
-            title: 'Error',
-            description: 'Could not save your new profile picture.',
-            variant: 'destructive',
-          });
-        }
-      }
-    );
-  };
-
-  useEffect(() => {
-    if (user && userProfile && !hasDataLoaded) {
-      form.reset({
-        displayName: user.displayName || userProfile.displayName || '',
-        email: user.email || userProfile.email || '',
-        photoURL: user.photoURL || userProfile.photoURL || '',
-        bio: userProfile.bio || '',
-        city: userProfile.city || '',
-        caLevel: userProfile.caLevel,
-        socialLinks: {
-            twitter: userProfile.socialLinks?.twitter || '',
-            linkedin: userProfile.socialLinks?.linkedin || '',
-            instagram: userProfile.socialLinks?.instagram || '',
-        },
-      });
-      setHasDataLoaded(true);
-    } else if (user && !userProfile && !isProfileLoading && !hasDataLoaded) {
-        // Handle case where firestore profile doesn't exist yet but auth user does
-        form.reset({
-            displayName: user.displayName || '',
-            email: user.email || '',
-            photoURL: user.photoURL || '',
-        });
-        setHasDataLoaded(true);
-    }
-  }, [user, userProfile, isProfileLoading, hasDataLoaded, form]);
-  
   useEffect(() => {
     if (!isUserLoading && !user) {
       router.push('/login');
     }
   }, [isUserLoading, user, router]);
 
+  useEffect(() => {
+    if (userProfile) {
+      form.reset({
+        displayName: userProfile.displayName || user?.displayName || '',
+        email: userProfile.email || user?.email || '',
+        bio: userProfile.bio || '',
+        city: userProfile.city || '',
+        caLevel: userProfile.caLevel,
+        photoURL: userProfile.photoURL || user?.photoURL || '',
+        socialLinks: {
+          twitter: userProfile.socialLinks?.twitter || '',
+          linkedin: userProfile.socialLinks?.linkedin || '',
+          instagram: userProfile.socialLinks?.instagram || '',
+        },
+      });
+    } else if (user && !isProfileLoading) {
+      form.reset({
+        displayName: user.displayName || '',
+        email: user.email || '',
+        photoURL: user.photoURL || '',
+      });
+    }
+  }, [user, userProfile, isProfileLoading, form]);
+  
   async function onSubmit(values: z.infer<typeof profileSchema>) {
     if (!user) return;
     setIsSubmitting(true);
@@ -191,7 +135,7 @@ export default function ProfilePage() {
     }
   }
   
-  const isLoading = isUserLoading || (isProfileLoading && !hasDataLoaded);
+  const isLoading = isUserLoading || isProfileLoading;
 
   if (isLoading || !user) {
     return (
@@ -200,7 +144,7 @@ export default function ProfilePage() {
       </div>
     );
   }
-
+  
   const getInitials = (name?: string | null) => {
     if (!name) return 'U';
     const names = name.split(' ');
@@ -212,33 +156,26 @@ export default function ProfilePage() {
 
   return (
     <div className="container mx-auto max-w-4xl py-8">
-       <Form {...form}>
-        <form onSubmit={form.handleSubmit(onSubmit)}>
-            <Card>
-                <CardHeader className="flex flex-row items-center gap-6">
-                  <div className="flex flex-col items-center">
-                    <div className="relative group">
-                        <Avatar className="h-24 w-24 mb-2 cursor-pointer" onClick={handleAvatarClick}>
-                            <AvatarImage src={form.watch('photoURL')} alt={form.watch('displayName')} />
-                            <AvatarFallback>{getInitials(form.watch('displayName'))}</AvatarFallback>
-                        </Avatar>
-                        <div className="absolute inset-0 h-24 w-24 rounded-full flex items-center justify-center bg-black bg-opacity-50 opacity-0 group-hover:opacity-100 transition-opacity cursor-pointer" onClick={handleAvatarClick}>
-                            <Camera className="h-8 w-8 text-white" />
-                        </div>
-                          <input type="file" ref={fileInputRef} onChange={handleFileChange} accept="image/*" className="hidden" />
-                    </div>
-                    {uploadProgress !== null && (
-                        <div className="w-full px-4">
-                            <Progress value={uploadProgress} className="h-1 w-20" />
-                        </div>
-                    )}
-                  </div>
-                  <div className='space-y-1'>
-                    <CardTitle className="font-headline text-3xl">Your Profile</CardTitle>
-                    <CardDescription>
-                        Manage your personal information and preferences.
-                    </CardDescription>
-                  </div>
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
+        <Card className="md:col-span-1 items-center">
+            <CardHeader className="items-center">
+                <Avatar className="h-24 w-24 mb-2">
+                    <AvatarImage src={form.watch('photoURL')} alt={form.watch('displayName')} />
+                    <AvatarFallback>{getInitials(form.watch('displayName'))}</AvatarFallback>
+                </Avatar>
+                <CardTitle>{form.watch('displayName')}</CardTitle>
+                <CardDescription>{form.watch('email')}</CardDescription>
+            </CardHeader>
+        </Card>
+        <div className="md:col-span-2">
+          <Form {...form}>
+            <form onSubmit={form.handleSubmit(onSubmit)}>
+              <Card>
+                <CardHeader>
+                  <CardTitle>Your Profile</CardTitle>
+                  <CardDescription>
+                    Manage your personal information and preferences.
+                  </CardDescription>
                 </CardHeader>
                 <CardContent className="space-y-6">
                 <FormField
@@ -262,6 +199,19 @@ export default function ProfilePage() {
                         <FormLabel>Email Address</FormLabel>
                         <FormControl>
                         <Input placeholder="m@example.com" {...field} disabled />
+                        </FormControl>
+                        <FormMessage />
+                    </FormItem>
+                    )}
+                />
+                <FormField
+                    control={form.control}
+                    name="photoURL"
+                    render={({ field }) => (
+                    <FormItem>
+                        <FormLabel>Profile Picture URL</FormLabel>
+                        <FormControl>
+                        <Input placeholder="https://example.com/your-image.png" {...field} />
                         </FormControl>
                         <FormMessage />
                     </FormItem>
@@ -327,8 +277,8 @@ export default function ProfilePage() {
                                 <FormItem>
                                     <FormControl>
                                           <div className="relative">
-                                            <X className="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-muted-foreground" />
-                                            <Input placeholder="https://x.com/username" {...field} className="pl-10" />
+                                            <Twitter className="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-muted-foreground" />
+                                            <Input placeholder="https://twitter.com/username" {...field} className="pl-10" />
                                         </div>
                                     </FormControl>
                                     <FormMessage />
@@ -350,7 +300,7 @@ export default function ProfilePage() {
                                 </FormItem>
                             )}
                         />
-                        <FormField
+                         <FormField
                             control={form.control}
                             name="socialLinks.instagram"
                             render={({ field }) => (
@@ -368,14 +318,16 @@ export default function ProfilePage() {
                     </div>
                   </div>
 
-                <Button type="submit" disabled={isSubmitting || uploadProgress !== null}>
-                    {(isSubmitting || uploadProgress !== null) && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                <Button type="submit" disabled={isSubmitting}>
+                    {isSubmitting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
                     Save Changes
                 </Button>
                 </CardContent>
-            </Card>
-          </form>
-        </Form>
+              </Card>
+            </form>
+          </Form>
+        </div>
+      </div>
     </div>
   );
 }

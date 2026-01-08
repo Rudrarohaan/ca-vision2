@@ -67,19 +67,22 @@ export type GenerateMcqsFromUploadedMaterialOutput = z.infer<
 
 
 export const UserProfileSchema = z.object({
-  id: z.string(),
+  id: z.string().optional(),
   email: z.string().email(),
-  displayName: z.string(),
+  displayName: z.string().optional(),
   bio: z.string().optional(),
   city: z.string().optional(),
   caLevel: z.enum(['Foundation', 'Intermediate', 'Final']).optional(),
   photoURL: z.string().url().optional(),
-  socialLinks: z.object({
-    twitter: z.string().url().optional(),
-    linkedin: z.string().url().optional(),
-    instagram: z.string().url().optional(),
-  }).optional(),
+  socialLinks: z
+    .object({
+      twitter: z.string().url().optional().or(z.literal('')),
+      linkedin: z.string().url().optional().or(z.literal('')),
+      instagram: z.string().url().optional().or(z.literal('')),
+    })
+    .optional(),
 });
+
 
 export type UserProfile = z.infer<typeof UserProfileSchema>;
 
@@ -100,5 +103,3 @@ export const ChatInputSchema = z.object({
 export const ChatOutputSchema = z.object({
   content: z.string(),
 });
-
-    
