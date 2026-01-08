@@ -22,11 +22,11 @@ import {
   FormLabel,
   FormMessage,
 } from '@/components/ui/form';
-import { useEffect, useState, useMemo } from 'react';
+import { useEffect, useState, useMemo, useRef } from 'react';
 import { updateUserProfileAction } from '@/app/actions';
 import { useToast } from '@/hooks/use-toast';
 import { useRouter } from 'next/navigation';
-import { Loader2, Linkedin, Twitter } from 'lucide-react';
+import { Loader2, Linkedin, Twitter, Upload, Camera } from 'lucide-react';
 import { Textarea } from '@/components/ui/textarea';
 import {
   Select,
@@ -35,11 +35,12 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
-import { useFirestore, useDoc, useMemoFirebase } from '@/firebase';
+import { useFirestore, useDoc, useMemoFirebase, useStorage } from '@/firebase';
 import { doc } from 'firebase/firestore';
 import type { UserProfile } from '@/lib/types';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
-
+import { getDownloadURL, ref as storageRef, uploadBytesResumable } from 'firebase/storage';
+import { Progress } from '@/components/ui/progress';
 
 const profileSchema = z.object({
   displayName: z.string().min(1, 'Name is required.'),
@@ -59,7 +60,10 @@ export default function ProfilePage() {
   const { toast } = useToast();
   const router = useRouter();
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [uploadProgress, setUploadProgress] = useState<number | null>(null);
   const firestore = useFirestore();
+  const storage = useStorage();
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   const userDocRef = useMemoFirebase(
     () => (user ? doc(firestore, 'users', user.uid) : null),
@@ -82,6 +86,41 @@ export default function ProfilePage() {
       photoURL: '',
     },
   });
+  
+  const handleAvatarClick = () => {
+    fileInputRef.current?.click();
+  };
+
+  const handleFileChange = async (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (!file || !user || !storage) return;
+
+    const fileRef = storageRef(storage, `profile-pictures/${user.uid}`);
+    const uploadTask = uploadBytesResumable(fileRef, file);
+
+    uploadTask.on('state_changed',
+      (snapshot) => {
+        const progress = (snapshot.bytesTransferred / snapshot.totalBytes) * 100;
+        setUploadProgress(progress);
+      },
+      (error) => {
+        console.error("Upload failed:", error);
+        toast({
+          title: 'Upload Failed',
+          description: 'Could not upload your profile picture. Please try again.',
+          variant: 'destructive',
+        });
+        setUploadProgress(null);
+      },
+      async () => {
+        const downloadURL = await getDownloadURL(uploadTask.snapshot.ref);
+        form.setValue('photoURL', downloadURL);
+        await onSubmit(form.getValues());
+        setUploadProgress(null);
+      }
+    );
+  };
+
 
   useEffect(() => {
     if (user) {
@@ -160,10 +199,22 @@ export default function ProfilePage() {
             <div className="md:col-span-1">
                  <Card>
                     <CardHeader className="items-center">
-                         <Avatar className="h-24 w-24 mb-4">
-                            <AvatarImage src={form.getValues('photoURL')} alt={form.getValues('displayName')} />
-                            <AvatarFallback>{getInitials(form.getValues('displayName'))}</AvatarFallback>
-                        </Avatar>
+                        <div className="relative group">
+                            <Avatar className="h-24 w-24 mb-4 cursor-pointer" onClick={handleAvatarClick}>
+                                <AvatarImage src={form.watch('photoURL')} alt={form.getValues('displayName')} />
+                                <AvatarFallback>{getInitials(form.getValues('displayName'))}</AvatarFallback>
+                            </Avatar>
+                            <div className="absolute inset-0 h-24 w-24 mb-4 rounded-full flex items-center justify-center bg-black bg-opacity-50 opacity-0 group-hover:opacity-100 transition-opacity cursor-pointer" onClick={handleAvatarClick}>
+                                <Camera className="h-8 w-8 text-white" />
+                            </div>
+                             <input type="file" ref={fileInputRef} onChange={handleFileChange} accept="image/*" className="hidden" />
+                        </div>
+                        {uploadProgress !== null && (
+                            <div className="w-full px-4">
+                                <Progress value={uploadProgress} className="h-2" />
+                                <p className="text-xs text-center mt-1 text-muted-foreground">Uploading...</p>
+                            </div>
+                        )}
                         <CardTitle className="font-headline text-2xl">{form.getValues('displayName')}</CardTitle>
                         <CardDescription>{form.getValues('email')}</CardDescription>
                     </CardHeader>
@@ -305,8 +356,8 @@ export default function ProfilePage() {
                         </div>
                       </div>
 
-                    <Button type="submit" disabled={isSubmitting}>
-                        {isSubmitting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                    <Button type="submit" disabled={isSubmitting || uploadProgress !== null}>
+                        {(isSubmitting || uploadProgress !== null) && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
                         Save Changes
                     </Button>
                     </CardContent>
