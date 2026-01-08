@@ -11,7 +11,7 @@ import {
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Button } from '@/components/ui/button';
-import { BrainCircuit, Github, Lock, Mail } from 'lucide-react';
+import { BrainCircuit, Github, Lock, Mail, Loader2 } from 'lucide-react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
@@ -31,7 +31,7 @@ import {
 import { useAuth } from '@/firebase';
 import { useRouter } from 'next/navigation';
 import { useUser } from '@/firebase/auth/use-user';
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
 
 const loginSchema = z.object({
   email: z.string().email('Invalid email address.'),
@@ -53,6 +53,11 @@ export default function LoginPage() {
   const auth = useAuth();
   const router = useRouter();
   const { user } = useUser();
+  const [hasMounted, setHasMounted] = useState(false);
+
+  useEffect(() => {
+    setHasMounted(true);
+  }, []);
 
   const form = useForm<z.infer<typeof loginSchema>>({
     resolver: zodResolver(loginSchema),
@@ -89,81 +94,89 @@ export default function LoginPage() {
           </CardDescription>
         </CardHeader>
         <CardContent>
-          <Form {...form}>
-            <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
-              <FormField
-                control={form.control}
-                name="email"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Email</FormLabel>
-                    <FormControl>
-                      <div className="relative">
-                        <Mail className="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-muted-foreground" />
-                        <Input placeholder="m@example.com" {...field} className="pl-10" />
-                      </div>
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-              <FormField
-                control={form.control}
-                name="password"
-                render={({ field }) => (
-                  <FormItem>
-                     <div className="flex items-center">
-                        <FormLabel>Password</FormLabel>
-                        <Link
-                        href="#"
-                        className="ml-auto inline-block text-sm underline"
-                        >
-                        Forgot your password?
-                        </Link>
-                    </div>
-                    <FormControl>
-                      <div className="relative">
-                        <Lock className="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-muted-foreground" />
-                        <Input type="password" {...field} className="pl-10" />
-                      </div>
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-              <Button type="submit" className="w-full !mt-6 bg-primary hover:bg-primary/90 text-primary-foreground font-bold shadow-lg shadow-primary/20 transition-all hover:shadow-primary/30 hover:scale-105">
-                Sign In
-              </Button>
-            </form>
-          </Form>
-
-          <div className="relative my-4">
-            <div className="absolute inset-0 flex items-center">
-              <span className="w-full border-t" />
+          {!hasMounted ? (
+             <div className="flex items-center justify-center h-64">
+                <Loader2 className="h-10 w-10 animate-spin text-primary" />
             </div>
-            <div className="relative flex justify-center text-xs uppercase">
-              <span className="bg-card px-2 text-muted-foreground">
-                Or continue with
-              </span>
-            </div>
-          </div>
+          ) : (
+            <>
+              <Form {...form}>
+                <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
+                  <FormField
+                    control={form.control}
+                    name="email"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Email</FormLabel>
+                        <FormControl>
+                          <div className="relative">
+                            <Mail className="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-muted-foreground" />
+                            <Input placeholder="m@example.com" {...field} className="pl-10" />
+                          </div>
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                  <FormField
+                    control={form.control}
+                    name="password"
+                    render={({ field }) => (
+                      <FormItem>
+                        <div className="flex items-center">
+                            <FormLabel>Password</FormLabel>
+                            <Link
+                            href="#"
+                            className="ml-auto inline-block text-sm underline"
+                            >
+                            Forgot your password?
+                            </Link>
+                        </div>
+                        <FormControl>
+                          <div className="relative">
+                            <Lock className="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-muted-foreground" />
+                            <Input type="password" {...field} className="pl-10" />
+                          </div>
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                  <Button type="submit" className="w-full !mt-6 bg-primary hover:bg-primary/90 text-primary-foreground font-bold shadow-lg shadow-primary/20 transition-all hover:shadow-primary/30 hover:scale-105">
+                    Sign In
+                  </Button>
+                </form>
+              </Form>
 
-          <div className="grid grid-cols-2 gap-4">
-            <Button onClick={() => initiateGoogleSignIn(auth)} variant="outline" className="transition-all hover:border-primary hover:text-primary">
-              <GoogleIcon />
-              <span className="ml-2">Google</span>
-            </Button>
-             <Button onClick={() => initiateAnonymousSignIn(auth)} variant="outline" className="transition-all hover:border-primary hover:text-primary">
-              <Github className="mr-2 h-5 w-5" />
-              Guest
-            </Button>
-          </div>
-          <div className="mt-6 text-center text-sm">
-            Don&apos;t have an account?{' '}
-            <Link href="#" className="underline text-primary">
-              Sign up
-            </Link>
-          </div>
+              <div className="relative my-4">
+                <div className="absolute inset-0 flex items-center">
+                  <span className="w-full border-t" />
+                </div>
+                <div className="relative flex justify-center text-xs uppercase">
+                  <span className="bg-card px-2 text-muted-foreground">
+                    Or continue with
+                  </span>
+                </div>
+              </div>
+
+              <div className="grid grid-cols-2 gap-4">
+                <Button onClick={() => initiateGoogleSignIn(auth)} variant="outline" className="transition-all hover:border-primary hover:text-primary">
+                  <GoogleIcon />
+                  <span className="ml-2">Google</span>
+                </Button>
+                <Button onClick={() => initiateAnonymousSignIn(auth)} variant="outline" className="transition-all hover:border-primary hover:text-primary">
+                  <Github className="mr-2 h-5 w-5" />
+                  Guest
+                </Button>
+              </div>
+              <div className="mt-6 text-center text-sm">
+                Don&apos;t have an account?{' '}
+                <Link href="#" className="underline text-primary">
+                  Sign up
+                </Link>
+              </div>
+            </>
+          )}
         </CardContent>
       </Card>
     </div>
