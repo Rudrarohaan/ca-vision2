@@ -26,7 +26,7 @@ import { useEffect, useState, useMemo, useRef } from 'react';
 import { updateUserProfileAction } from '@/app/actions';
 import { useToast } from '@/hooks/use-toast';
 import { useRouter } from 'next/navigation';
-import { Loader2, Linkedin, Twitter, Upload, Camera, Instagram } from 'lucide-react';
+import { Loader2, Linkedin, X, Upload, Camera, Instagram } from 'lucide-react';
 import { Textarea } from '@/components/ui/textarea';
 import {
   Select,
@@ -65,6 +65,7 @@ export default function ProfilePage() {
   const firestore = useFirestore();
   const storage = useStorage();
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const [hasDataLoaded, setHasDataLoaded] = useState(false);
 
   const userDocRef = useMemoFirebase(
     () => (user ? doc(firestore, 'users', user.uid) : null),
@@ -117,35 +118,52 @@ export default function ProfilePage() {
       async () => {
         const downloadURL = await getDownloadURL(uploadTask.snapshot.ref);
         form.setValue('photoURL', downloadURL);
-        await onSubmit(form.getValues());
+        // Automatically save the profile when a new picture is uploaded
+        const result = await updateUserProfileAction({ uid: user.uid, data: { ...form.getValues(), photoURL: downloadURL } });
         setUploadProgress(null);
+
+        if (result.success) {
+          toast({
+            title: 'Profile Picture Updated',
+            description: 'Your new picture has been saved.',
+          });
+        } else {
+           toast({
+            title: 'Error',
+            description: 'Could not save your new profile picture.',
+            variant: 'destructive',
+          });
+        }
       }
     );
   };
 
-
   useEffect(() => {
-    if (user) {
+    if (user && userProfile && !hasDataLoaded) {
       form.reset({
-        displayName: user.displayName || '',
-        email: user.email || '',
-        photoURL: user.photoURL || '',
+        displayName: user.displayName || userProfile.displayName || '',
+        email: user.email || userProfile.email || '',
+        photoURL: user.photoURL || userProfile.photoURL || '',
+        bio: userProfile.bio || '',
+        city: userProfile.city || '',
+        caLevel: userProfile.caLevel,
+        socialLinks: {
+            twitter: userProfile.socialLinks?.twitter || '',
+            linkedin: userProfile.socialLinks?.linkedin || '',
+            instagram: userProfile.socialLinks?.instagram || '',
+        },
       });
-    }
-    if (userProfile) {
+      setHasDataLoaded(true);
+    } else if (user && !userProfile && !isProfileLoading && !hasDataLoaded) {
+        // Handle case where firestore profile doesn't exist yet but auth user does
         form.reset({
-            ...form.getValues(),
-            bio: userProfile.bio || '',
-            city: userProfile.city || '',
-            caLevel: userProfile.caLevel,
-            socialLinks: {
-                twitter: userProfile.socialLinks?.twitter || '',
-                linkedin: userProfile.socialLinks?.linkedin || '',
-                instagram: userProfile.socialLinks?.instagram || '',
-            },
-        })
+            displayName: user.displayName || '',
+            email: user.email || '',
+            photoURL: user.photoURL || '',
+        });
+        setHasDataLoaded(true);
     }
-  }, [user, userProfile, form]);
+  }, [user, userProfile, isProfileLoading, hasDataLoaded, form]);
   
   useEffect(() => {
     if (!isUserLoading && !user) {
@@ -164,9 +182,6 @@ export default function ProfilePage() {
         title: 'Profile Updated',
         description: 'Your profile has been updated successfully.',
       });
-      await user?.reload(); 
-      router.refresh();
-
     } else {
       toast({
         title: 'Error',
@@ -176,7 +191,7 @@ export default function ProfilePage() {
     }
   }
   
-  const isLoading = isUserLoading || isProfileLoading;
+  const isLoading = isUserLoading || (isProfileLoading && !hasDataLoaded);
 
   if (isLoading || !user) {
     return (
@@ -189,7 +204,7 @@ export default function ProfilePage() {
   const getInitials = (name?: string | null) => {
     if (!name) return 'U';
     const names = name.split(' ');
-    if (names.length > 1) {
+    if (names.length > 1 && names[1]) {
       return `${names[0][0]}${names[names.length - 1][0]}`;
     }
     return name[0];
@@ -204,8 +219,8 @@ export default function ProfilePage() {
                   <div className="flex flex-col items-center">
                     <div className="relative group">
                         <Avatar className="h-24 w-24 mb-2 cursor-pointer" onClick={handleAvatarClick}>
-                            <AvatarImage src={form.watch('photoURL')} alt={form.getValues('displayName')} />
-                            <AvatarFallback>{getInitials(form.getValues('displayName'))}</AvatarFallback>
+                            <AvatarImage src={form.watch('photoURL')} alt={form.watch('displayName')} />
+                            <AvatarFallback>{getInitials(form.watch('displayName'))}</AvatarFallback>
                         </Avatar>
                         <div className="absolute inset-0 h-24 w-24 rounded-full flex items-center justify-center bg-black bg-opacity-50 opacity-0 group-hover:opacity-100 transition-opacity cursor-pointer" onClick={handleAvatarClick}>
                             <Camera className="h-8 w-8 text-white" />
@@ -285,7 +300,7 @@ export default function ProfilePage() {
                         render={({ field }) => (
                         <FormItem>
                             <FormLabel>CA Level</FormLabel>
-                            <Select onValueChange={field.onChange} defaultValue={field.value}>
+                            <Select onValueChange={field.onChange} value={field.value}>
                             <FormControl>
                                 <SelectTrigger>
                                 <SelectValue placeholder="Select your level" />
@@ -312,7 +327,7 @@ export default function ProfilePage() {
                                 <FormItem>
                                     <FormControl>
                                           <div className="relative">
-                                            <Twitter className="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-muted-foreground" />
+                                            <X className="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-muted-foreground" />
                                             <Input placeholder="https://x.com/username" {...field} className="pl-10" />
                                         </div>
                                     </FormControl>
@@ -364,5 +379,3 @@ export default function ProfilePage() {
     </div>
   );
 }
-
-    
