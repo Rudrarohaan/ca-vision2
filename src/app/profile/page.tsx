@@ -204,19 +204,6 @@ export default function ProfilePage() {
                     </FormItem>
                     )}
                 />
-                <FormField
-                    control={form.control}
-                    name="photoURL"
-                    render={({ field }) => (
-                    <FormItem>
-                        <FormLabel>Profile Picture URL</FormLabel>
-                        <FormControl>
-                        <Input placeholder="https://example.com/your-image.png" {...field} />
-                        </FormControl>
-                        <FormMessage />
-                    </FormItem>
-                    )}
-                />
                   <FormField
                     control={form.control}
                     name="bio"
