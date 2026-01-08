@@ -6,8 +6,8 @@ import {
 import {
   generateMcqsFromUploadedMaterial,
 } from '@/ai/flows/generate-mcqs-from-uploaded-material';
-import type { GenerateMcqsFromSyllabusInput, GenerateMcqsFromUploadedMaterialInput, UserProfile } from '@/lib/types';
-import { chat, ChatInputSchema, ChatOutputSchema } from '@/ai/flows/chat';
+import type { GenerateMcqsFromSyllabusInput, GenerateMcqsFromUploadedMaterialInput, UserProfile, ChatInputSchema, ChatOutputSchema } from '@/lib/types';
+import { chat } from '@/ai/flows/chat';
 import { z } from 'zod';
 import { getAuth } from 'firebase/auth';
 import { getApp } from 'firebase/app';
