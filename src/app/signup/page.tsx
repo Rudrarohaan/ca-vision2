@@ -42,6 +42,7 @@ export default function SignupPage() {
   const router = useRouter();
   const { user, isUserLoading } = useUser();
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [isProfileUpdating, setIsProfileUpdating] = useState(false);
 
   const form = useForm<z.infer<typeof signupSchema>>({
     resolver: zodResolver(signupSchema),
@@ -54,22 +55,24 @@ export default function SignupPage() {
 
   useEffect(() => {
     // When user object becomes available, update profile and redirect
-    if (user && !isUserLoading && isSubmitting) {
+    if (user && !isUserLoading && isSubmitting && !isProfileUpdating) {
+      setIsProfileUpdating(true);
       const values = form.getValues();
       updateUserProfileAction({ 
         uid: user.uid, 
         data: { displayName: values.displayName, email: values.email }
       }).then(() => {
-         router.push('/');
+        router.push('/');
       });
     } else if (user && !isUserLoading && !isSubmitting) {
       // If user is already logged in and not in the process of signing up, redirect
       router.push('/');
     }
-  }, [user, isUserLoading, router, isSubmitting, form]);
+  }, [user, isUserLoading, router, isSubmitting, form, isProfileUpdating]);
 
 
   function onSubmit(values: z.infer<typeof signupSchema>) {
+    if (!auth) return;
     setIsSubmitting(true);
     initiateEmailSignUp(auth, values.email, values.password);
   }

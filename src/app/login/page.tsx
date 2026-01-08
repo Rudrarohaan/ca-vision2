@@ -52,7 +52,7 @@ function GoogleIcon() {
 export default function LoginPage() {
   const auth = useAuth();
   const router = useRouter();
-  const { user } = useUser();
+  const { user, isUserLoading } = useUser();
   const [hasMounted, setHasMounted] = useState(false);
 
   useEffect(() => {
@@ -68,14 +68,34 @@ export default function LoginPage() {
   });
 
   useEffect(() => {
-    if (user) {
+    if (!isUserLoading && user) {
       router.push('/');
     }
-  }, [user, router]);
+  }, [user, isUserLoading, router]);
 
   function onSubmit(values: z.infer<typeof loginSchema>) {
+    if (!auth) return;
     initiateEmailSignIn(auth, values.email, values.password);
   }
+  
+  function onGoogleSignIn() {
+    if (!auth) return;
+    initiateGoogleSignIn(auth);
+  }
+
+  function onAnonymousSignIn() {
+    if (!auth) return;
+    initiateAnonymousSignIn(auth);
+  }
+
+  if (isUserLoading || user) {
+    return (
+      <div className="flex h-[calc(100vh-4rem)] items-center justify-center">
+        <Loader2 className="h-10 w-10 animate-spin text-primary" />
+      </div>
+    );
+  }
+
 
   return (
     <div className="flex min-h-[calc(100vh-4rem)] items-center justify-center bg-background p-4">
@@ -160,11 +180,11 @@ export default function LoginPage() {
               </div>
 
               <div className="grid grid-cols-2 gap-4">
-                <Button onClick={() => initiateGoogleSignIn(auth)} variant="outline" className="transition-all hover:border-primary hover:text-primary">
+                <Button onClick={onGoogleSignIn} variant="outline" className="transition-all hover:border-primary hover:text-primary">
                   <GoogleIcon />
                   <span className="ml-2">Google</span>
                 </Button>
-                <Button onClick={() => initiateAnonymousSignIn(auth)} variant="outline" className="transition-all hover:border-primary hover:text-primary">
+                <Button onClick={onAnonymousSignIn} variant="outline" className="transition-all hover:border-primary hover:text-primary">
                   <Github className="mr-2 h-5 w-5" />
                   Guest
                 </Button>
