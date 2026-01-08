@@ -218,21 +218,6 @@ export default function ProfilePage() {
                         <CardTitle className="font-headline text-2xl">{form.getValues('displayName')}</CardTitle>
                         <CardDescription>{form.getValues('email')}</CardDescription>
                     </CardHeader>
-                    <CardContent>
-                        <FormField
-                            control={form.control}
-                            name="photoURL"
-                            render={({ field }) => (
-                                <FormItem>
-                                <FormLabel>Profile Picture URL</FormLabel>
-                                <FormControl>
-                                    <Input placeholder="https://..." {...field} />
-                                </FormControl>
-                                <FormMessage />
-                                </FormItem>
-                            )}
-                         />
-                    </CardContent>
                  </Card>
             </div>
             <div className="md:col-span-2">
