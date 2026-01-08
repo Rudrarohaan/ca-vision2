@@ -1,0 +1,181 @@
+/**
+ * Core Philosophy: This ruleset enforces a strict user-ownership security model. All data is considered private and
+ * accessible only by the authenticated user who created it. There is no concept of public data or shared access in
+ * this model.
+ *
+ * Data Structure: The data is organized hierarchically. Most user-specific information, such as dashboards and
+ * analytics, is stored in subcollections directly under a user's document at `/users/{userId}`. This structure
+ * allows for simple and performant path-based security rules. A top-level collection, `/mcq_generations`, is used for
+ * logging but still maintains strict ownership via a `userId` field within each document.
+ *
+ * Key Security Decisions:
+ * - User Isolation: A user can only ever access their own data tree under `/users/{userId}`.
+ * - No User Enumeration: Listing documents in the top-level `/users` collection is explicitly forbidden to prevent
+ *   leaking user information.
+ * - Ownership-Based Writes: All write operations (create, update, delete) are strictly controlled. Users can only
+ *   write documents they own, either by path or by an explicit `userId` field on the document.
+ * - Secure Listing: Listing documents is only permitted within a user's own subcollections. Listing on top-level
+ *   collections that mix data from multiple users (like `/mcq_generations`) is disallowed to prevent accidental
+ *   data leakage.
+ *
+ * Denormalization for Authorization: The rules rely on a denormalized `userId` field in documents within top-level
+ * collections (e.g., `mcq_generations`) to enforce ownership without requiring costly `get()` calls to other documents.
+ * This makes authorization checks fast and efficient. For data in user-specific subcollections, the `userId` in the
+ * document path is the source of truth.
+ *
+ * Structural Segregation: User data is strictly segregated by placing it in subcollections under the user's unique
+ * ID (e.g., `/users/{userId}/dashboards`). This pattern is inherently secure for list operations, as a query on that
+ * path can only ever return documents belonging to that single user.
+ */
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // Helper Functions
+    // ----------------
+
+    /**
+     * Checks if the user is authenticated.
+     */
+    function isSignedIn() {
+      return request.auth != null;
+    }
+
+    /**
+     * Checks if the authenticated user's UID matches the provided userId from the path.
+     * This is used for securing user-owned data trees.
+     */
+    function isOwner(userId) {
+      return isSignedIn() && request.auth.uid == userId;
+    }
+
+    /**
+     * Checks if the authenticated user's UID matches an ownerId field on an existing document.
+     * This is used for securing documents in shared collections.
+     */
+    function isExistingDocOwner(ownerId) {
+      return isSignedIn() && request.auth.uid == ownerId && resource != null;
+    }
+
+    /**
+     * Validates that the 'id' field of a new User document matches the document's ID in the path.
+     */
+    function isNewUserDocValid(userId) {
+      return request.resource.data.id == userId;
+    }
+
+    /**
+     * Enforces that the 'id' field of a User document is immutable on update.
+     */
+    function isUserUpdateValid() {
+      return request.resource.data.id == resource.data.id;
+    }
+
+    /**
+     * Validates that the 'userId' field of a new Dashboard document matches the user ID in the path.
+     */
+    function isNewDashboardDocValid(userId) {
+      return request.resource.data.userId == userId;
+    }
+
+    /**
+     * Enforces that the 'userId' field of a Dashboard document is immutable on update.
+     */
+    function isDashboardUpdateValid() {
+      return request.resource.data.userId == resource.data.userId;
+    }
+
+    /**
+     * Validates that a new MCQ Generation document is being created by the correct owner.
+     */
+    function isNewMcqGenerationDocValid() {
+      return request.resource.data.userId == request.auth.uid;
+    }
+
+    /**
+     * Enforces that the 'userId' field of an MCQ Generation document is immutable.
+     */
+    function isMcqGenerationUpdateValid() {
+      return request.resource.data.userId == resource.data.userId;
+    }
+
+
+    /**
+     * @description Manages user profile data. A user can create their own profile, but cannot see or list others.
+     * @path /users/{userId}
+     * @allow (get, update) A signed-in user with auth.uid 'user123' accessing their own document at /users/user123.
+     * @deny (list) Any user trying to list all documents in the /users collection.
+     * @deny (get) A user with auth.uid 'user123' trying to access /users/user456.
+     * @principle Restricts access to a user's own data tree and prevents user enumeration.
+     */
+    match /users/{userId} {
+      allow get: if isOwner(userId);
+      allow list: if false;
+      allow create: if isOwner(userId) && isNewUserDocValid(userId);
+      allow update: if isOwner(userId) && resource != null && isUserUpdateValid();
+      allow delete: if isOwner(userId) && resource != null;
+    }
+
+    /**
+     * @description Secures the user's private dashboard document.
+     * @path /users/{userId}/dashboards/{dashboardId}
+     * @allow (create, list) A signed-in user with auth.uid 'user123' managing documents under /users/user123/dashboards/.
+     * @deny (get) A user with auth.uid 'user456' trying to read a document at /users/user123/dashboards/dash999.
+     * @principle Enforces strict path-based ownership for all operations on user-specific subcollections.
+     */
+    match /users/{userId}/dashboards/{dashboardId} {
+      allow get: if isOwner(userId);
+      allow list: if isOwner(userId);
+      allow create: if isOwner(userId) && isNewDashboardDocValid(userId);
+      allow update: if isOwner(userId) && resource != null && isDashboardUpdateValid();
+      allow delete: if isOwner(userId) && resource != null;
+    }
+
+    /**
+     * @description Secures a user's aggregated MCQ analytics data.
+     * @path /users/{userId}/mcq_analytics/{mcqAnalyticsId}
+     * @allow (create, list) A signed-in user with auth.uid 'user123' managing documents under /users/user123/mcq_analytics/.
+     * @deny (update) A user with auth.uid 'user456' trying to modify a document at /users/user123/mcq_analytics/analytics999.
+     * @principle Enforces strict path-based ownership for all operations on user-specific subcollections.
+     */
+    match /users/{userId}/mcq_analytics/{mcqAnalyticsId} {
+      allow get: if isOwner(userId);
+      allow list: if isOwner(userId);
+      allow create: if isOwner(userId);
+      allow update: if isOwner(userId) && resource != null;
+      allow delete: if isOwner(userId) && resource != null;
+    }
+
+    /**
+     * @description Secures a user's granular, subject-specific analytics data.
+     * @path /users/{userId}/mcq_analytics/{mcqAnalyticsId}/subject_analytics/{subjectAnalyticsId}
+     * @allow (create, get) A signed-in user with auth.uid 'user123' managing documents under their own analytics path.
+     * @deny (delete) A user with auth.uid 'user456' trying to delete a document under /users/user123/...
+     * @principle Enforces strict path-based ownership, inherited from the root of the user's data tree.
+     */
+    match /users/{userId}/mcq_analytics/{mcqAnalyticsId}/subject_analytics/{subjectAnalyticsId} {
+      allow get: if isOwner(userId);
+      allow list: if isOwner(userId);
+      allow create: if isOwner(userId);
+      allow update: if isOwner(userId) && resource != null;
+      allow delete: if isOwner(userId) && resource != null;
+    }
+
+    /**
+     * @description Manages logs of MCQ generation events. Each log is private to the user who created it.
+     * @path /mcq_generations/{mcqGenerationId}
+     * @allow (create) A signed-in user creating a new generation log, with their own UID in the 'userId' field.
+     * @allow (get) A signed-in user reading a generation log where resource.data.userId matches their UID.
+     * @deny (list) Any user attempting to list documents, which would expose other users' activity.
+     * @deny (update) A user trying to modify a log where resource.data.userId is not their own.
+     * @principle Enforces document ownership for writes and reads in a top-level collection and prevents cross-user data leakage.
+     */
+    match /mcq_generations/{mcqGenerationId} {
+      allow get: if isExistingDocOwner(resource.data.userId);
+      allow list: if false;
+      allow create: if isSignedIn() && isNewMcqGenerationDocValid();
+      allow update: if isExistingDocOwner(resource.data.userId) && isMcqGenerationUpdateValid();
+      allow delete: if isExistingDocOwner(resource.data.userId);
+    }
+  }
+}

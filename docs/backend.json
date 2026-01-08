@@ -1,0 +1,285 @@
+{
+  "entities": {
+    "UserDashboard": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "UserDashboard",
+      "type": "object",
+      "description": "Represents the user's dashboard, containing aggregated analytics and navigation links.",
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "Unique identifier for the user dashboard."
+        },
+        "userId": {
+          "type": "string",
+          "description": "Reference to the User entity. (Relationship: User 1:1 UserDashboard)"
+        },
+        "lastLogin": {
+          "type": "string",
+          "description": "The date and time of the user's last login.",
+          "format": "date-time"
+        },
+        "mcqAnalyticsId": {
+          "type": "string",
+          "description": "Reference to the MCQAnalytics entity. (Relationship: MCQAnalytics 1:1 UserDashboard)"
+        }
+      },
+      "required": [
+        "id",
+        "userId",
+        "mcqAnalyticsId"
+      ]
+    },
+    "MCQAnalytics": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "MCQAnalytics",
+      "type": "object",
+      "description": "Stores analytics related to the user's MCQ performance.",
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "Unique identifier for the MCQ analytics."
+        },
+        "totalQuestionsAttempted": {
+          "type": "number",
+          "description": "The total number of MCQ questions attempted by the user."
+        },
+        "overallAccuracy": {
+          "type": "number",
+          "description": "The overall accuracy percentage of the user's MCQ attempts."
+        },
+        "subjectWiseAnalytics": {
+          "type": "array",
+          "description": "Array of subject-wise analytics data.",
+          "items": {
+            "type": "string"
+          }
+        }
+      },
+      "required": [
+        "id",
+        "totalQuestionsAttempted",
+        "overallAccuracy",
+        "subjectWiseAnalytics"
+      ]
+    },
+    "SubjectAnalytics": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "SubjectAnalytics",
+      "type": "object",
+      "description": "Stores analytics for a specific subject.",
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "Unique identifier for the subject analytics."
+        },
+        "subject": {
+          "type": "string",
+          "description": "The name of the subject."
+        },
+        "questionsAttempted": {
+          "type": "number",
+          "description": "The number of questions attempted for this subject."
+        },
+        "accuracy": {
+          "type": "number",
+          "description": "The accuracy percentage for this subject."
+        },
+        "mcqAnalyticsId": {
+          "type": "string",
+          "description": "Reference to MCQAnalytics. (Relationship: MCQAnalytics 1:N SubjectAnalytics)"
+        }
+      },
+      "required": [
+        "id",
+        "subject",
+        "questionsAttempted",
+        "accuracy",
+        "mcqAnalyticsId"
+      ]
+    },
+    "User": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "User",
+      "type": "object",
+      "description": "Represents a user in the system.",
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "Unique identifier for the user."
+        },
+        "email": {
+          "type": "string",
+          "description": "The user's email address.",
+          "format": "email"
+        },
+        "name": {
+          "type": "string",
+          "description": "The user's full name."
+        }
+      },
+      "required": [
+        "id",
+        "email",
+        "name"
+      ]
+    },
+    "MCQGeneration": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "MCQGeneration",
+      "type": "object",
+      "description": "Logs the generation of MCQs, including the selected parameters.",
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "Unique identifier for the MCQ generation event."
+        },
+        "userId": {
+          "type": "string",
+          "description": "Reference to the User entity. (Relationship: User 1:N MCQGeneration)"
+        },
+        "level": {
+          "type": "string",
+          "description": "The selected CA exam level (Foundation, Intermediate, Final)."
+        },
+        "subject": {
+          "type": "string",
+          "description": "The selected subject for MCQ generation."
+        },
+        "group": {
+          "type": "string",
+          "description": "The group selected, if applicable (Group I or Group II for Intermediate/Final)."
+        },
+        "difficulty": {
+          "type": "string",
+          "description": "The selected difficulty level (Easy, Medium, Hard)."
+        },
+        "count": {
+          "type": "number",
+          "description": "The number of MCQs generated."
+        },
+        "generationDate": {
+          "type": "string",
+          "description": "The date and time the MCQs were generated.",
+          "format": "date-time"
+        }
+      },
+      "required": [
+        "id",
+        "userId",
+        "level",
+        "subject",
+        "difficulty",
+        "count",
+        "generationDate"
+      ]
+    }
+  },
+  "auth": {
+    "providers": [
+      "password",
+      "anonymous"
+    ]
+  },
+  "firestore": {
+    "structure": [
+      {
+        "path": "/users/{userId}",
+        "definition": {
+          "entityName": "User",
+          "schema": {
+            "$ref": "#/backend/entities/User"
+          },
+          "description": "Stores user profiles.  Accessed only by the user themselves.",
+          "params": [
+            {
+              "name": "userId",
+              "description": "The unique identifier for the user."
+            }
+          ]
+        }
+      },
+      {
+        "path": "/users/{userId}/dashboards/{dashboardId}",
+        "definition": {
+          "entityName": "UserDashboard",
+          "schema": {
+            "$ref": "#/backend/entities/UserDashboard"
+          },
+          "description": "Stores user dashboards. Includes denormalized 'userId' for authorization independence.",
+          "params": [
+            {
+              "name": "userId",
+              "description": "The unique identifier for the user."
+            },
+            {
+              "name": "dashboardId",
+              "description": "The unique identifier for the user dashboard."
+            }
+          ]
+        }
+      },
+      {
+        "path": "/users/{userId}/mcq_analytics/{mcqAnalyticsId}",
+        "definition": {
+          "entityName": "MCQAnalytics",
+          "schema": {
+            "$ref": "#/backend/entities/MCQAnalytics"
+          },
+          "description": "Stores MCQ analytics for a user. Accessed only by the user themselves.",
+          "params": [
+            {
+              "name": "userId",
+              "description": "The unique identifier for the user."
+            },
+            {
+              "name": "mcqAnalyticsId",
+              "description": "The unique identifier for the MCQ analytics."
+            }
+          ]
+        }
+      },
+      {
+        "path": "/users/{userId}/mcq_analytics/{mcqAnalyticsId}/subject_analytics/{subjectAnalyticsId}",
+        "definition": {
+          "entityName": "SubjectAnalytics",
+          "schema": {
+            "$ref": "#/backend/entities/SubjectAnalytics"
+          },
+          "description": "Stores subject-wise analytics for a user.  Accessed only by the user themselves.",
+          "params": [
+            {
+              "name": "userId",
+              "description": "The unique identifier for the user."
+            },
+            {
+              "name": "mcqAnalyticsId",
+              "description": "The unique identifier for the MCQ analytics."
+            },
+            {
+              "name": "subjectAnalyticsId",
+              "description": "The unique identifier for the subject analytics."
+            }
+          ]
+        }
+      },
+      {
+        "path": "/mcq_generations/{mcqGenerationId}",
+        "definition": {
+          "entityName": "MCQGeneration",
+          "schema": {
+            "$ref": "#/backend/entities/MCQGeneration"
+          },
+          "description": "Stores logs of MCQ generation events. Includes denormalized 'userId' for authorization independence.",
+          "params": [
+            {
+              "name": "mcqGenerationId",
+              "description": "The unique identifier for the MCQ generation event."
+            }
+          ]
+        }
+      }
+    ],
+    "reasoning": "This Firestore structure is designed to support a CA Exam Prep application with features like MCQ generation and user dashboards. The design prioritizes authorization independence, clarity, and scalability. User-specific data is segregated into user-owned subcollections, while MCQ generation logs are stored in a separate collection.\n\n*   **Authorization Independence:**  Each user's data (dashboard, MCQ analytics, subject analytics, and MCQ generations) is stored under their respective `userId`. This eliminates the need for `get()` calls in security rules to verify ownership. The `UserDashboard` includes the `userId`, ensuring that rules can validate access based on `request.auth.uid` without needing to fetch the User document. For MCQ generations, the `userId` is included directly in the document.\n\n*   **Structural Segregation:** User-specific data is stored in subcollections under the `/users/{userId}` path. This ensures that all documents within a subcollection have the same security requirements (ownership by the user). MCQ generation logs, which are not directly tied to a specific user but are still user-related, are stored in the `/mcq_generations` collection.\n\n*   **Access Modeling:**\n    *   **Private Data:** The `/users/{userId}` path enforces path-based ownership for dashboards and analytics data.\n    *   **Global Roles (DBAC):**  Not explicitly used in this structure, but could be easily integrated by adding collections like `/roles_admin/{uid}`.\n\n*   **QAPs (Rules are not Filters):** The use of segregated collections and path-based ownership enables secure `list` operations.  Listing MCQ Generations is possible in the `/mcq_generations` collection but might require filtering.\n\n*   **Invariants:** The `userId` field in the `UserDashboard` and `MCQGeneration` collections maintains the invariant of ownership. Timestamps (e.g., `generationDate` in `MCQGeneration`) can be enforced using security rules to ensure their integrity.\n\nDenormalization is used to ensure authorization independence. Specifically, the `userId` is included in both the `UserDashboard` and `MCQGeneration` documents, making it possible to validate ownership without needing to read the User document.  Similarly, `mcqAnalyticsId` is present on the `UserDashboard` to facilitate direct lookup without complex queries."
+  }
+}
