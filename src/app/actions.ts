@@ -6,12 +6,13 @@ import {
 import {
   generateMcqsFromUploadedMaterial,
 } from '@/ai/flows/generate-mcqs-from-uploaded-material';
-import type { GenerateMcqsFromSyllabusInput, GenerateMcqsFromUploadedMaterialInput } from '@/lib/types';
+import type { GenerateMcqsFromSyllabusInput, GenerateMcqsFromUploadedMaterialInput, UserProfile } from '@/lib/types';
 import { chat, ChatInputSchema, ChatOutputSchema } from '@/ai/flows/chat';
 import { z } from 'zod';
 import { getAuth } from 'firebase/auth';
 import { getApp } from 'firebase/app';
 import { updateProfile } from 'firebase/auth';
+import { getFirestore, doc, setDoc } from 'firebase/firestore';
 
 
 export async function generateMcqsFromSyllabusAction(
@@ -20,6 +21,7 @@ export async function generateMcqsFromSyllabusAction(
   try {
     const mcqs = await generateMcqsFromSyllabus({
       ...input,
+      seed: Math.random(),
     });
     if (!mcqs || mcqs.length === 0) {
       throw new Error('No MCQs were generated. The model may have returned an empty or invalid response.');
@@ -66,19 +68,27 @@ export async function chatAction(
 }
 
 export async function updateUserProfileAction(
-  data: { displayName: string }
+  { uid, data }: { uid: string; data: Partial<UserProfile> }
 ) {
   try {
     const auth = getAuth(getApp());
     const user = auth.currentUser;
 
-    if (user) {
+    if (user && user.uid === uid) {
+      // Update Firebase Auth profile
       await updateProfile(user, {
         displayName: data.displayName,
+        photoURL: data.photoURL,
       });
+      
+      // Update Firestore document
+      const db = getFirestore(getApp());
+      const userDocRef = doc(db, 'users', uid);
+      await setDoc(userDocRef, data, { merge: true });
+
       return { success: true };
     } else {
-      throw new Error('User not authenticated.');
+      throw new Error('User not authenticated or mismatched user ID.');
     }
   } catch (error) {
     console.error('Error updating user profile:', error);

@@ -102,26 +102,61 @@
       "$schema": "http://json-schema.org/draft-07/schema#",
       "title": "User",
       "type": "object",
-      "description": "Represents a user in the system.",
+      "description": "Represents a user in the system, including profile information.",
       "properties": {
         "id": {
           "type": "string",
-          "description": "Unique identifier for the user."
+          "description": "Unique identifier for the user (matches Firebase Auth UID)."
         },
         "email": {
           "type": "string",
           "description": "The user's email address.",
           "format": "email"
         },
-        "name": {
+        "displayName": {
           "type": "string",
           "description": "The user's full name."
+        },
+        "bio": {
+          "type": "string",
+          "description": "A short biography of the user."
+        },
+        "city": {
+          "type": "string",
+          "description": "The city where the user resides."
+        },
+        "caLevel": {
+          "type": "string",
+          "description": "The user's current CA exam level.",
+          "enum": [
+            "Foundation",
+            "Intermediate",
+            "Final"
+          ]
+        },
+        "photoURL": {
+          "type": "string",
+          "description": "URL of the user's profile picture.",
+          "format": "uri"
+        },
+        "socialLinks": {
+          "type": "object",
+          "description": "Links to the user's social media profiles.",
+          "properties": {
+            "twitter": {
+              "type": "string",
+              "format": "uri"
+            },
+            "linkedin": {
+              "type": "string",
+              "format": "uri"
+            }
+          }
         }
       },
       "required": [
         "id",
-        "email",
-        "name"
+        "email"
       ]
     },
     "MCQGeneration": {
@@ -190,7 +225,7 @@
           "schema": {
             "$ref": "#/backend/entities/User"
           },
-          "description": "Stores user profiles.  Accessed only by the user themselves.",
+          "description": "Stores user profiles. Accessed only by the user themselves.",
           "params": [
             {
               "name": "userId",
@@ -246,7 +281,7 @@
           "schema": {
             "$ref": "#/backend/entities/SubjectAnalytics"
           },
-          "description": "Stores subject-wise analytics for a user.  Accessed only by the user themselves.",
+          "description": "Stores subject-wise analytics for a user. Accessed only by the user themselves.",
           "params": [
             {
               "name": "userId",

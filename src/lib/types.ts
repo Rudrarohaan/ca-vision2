@@ -64,3 +64,20 @@ export const GenerateMcqsFromUploadedMaterialOutputSchema = z.array(MCQSchema);
 export type GenerateMcqsFromUploadedMaterialOutput = z.infer<
   typeof GenerateMcqsFromUploadedMaterialOutputSchema
 >;
+
+
+export const UserProfileSchema = z.object({
+  id: z.string(),
+  email: z.string().email(),
+  displayName: z.string(),
+  bio: z.string().optional(),
+  city: z.string().optional(),
+  caLevel: z.enum(['Foundation', 'Intermediate', 'Final']).optional(),
+  photoURL: z.string().url().optional(),
+  socialLinks: z.object({
+    twitter: z.string().url().optional(),
+    linkedin: z.string().url().optional(),
+  }).optional(),
+});
+
+export type UserProfile = z.infer<typeof UserProfileSchema>;

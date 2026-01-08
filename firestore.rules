@@ -58,17 +58,23 @@ service cloud.firestore {
     }
 
     /**
-     * Validates that the 'id' field of a new User document matches the document's ID in the path.
+     * Validates that the 'id' field of a new User document matches the document's ID in the path,
+     * and that the email matches the auth token.
      */
     function isNewUserDocValid(userId) {
-      return request.resource.data.id == userId;
+      let data = request.resource.data;
+      return data.id == userId
+          && data.email == request.auth.token.email;
     }
 
     /**
-     * Enforces that the 'id' field of a User document is immutable on update.
+     * Enforces that key User document fields are immutable on update.
      */
-    function isUserUpdateValid() {
-      return request.resource.data.id == resource.data.id;
+    function isUserUpdateValid(userId) {
+       let data = request.resource.data;
+       return data.id == userId
+          && data.id == resource.data.id
+          && data.email == resource.data.email;
     }
 
     /**
@@ -112,7 +118,7 @@ service cloud.firestore {
       allow get: if isOwner(userId);
       allow list: if false;
       allow create: if isOwner(userId) && isNewUserDocValid(userId);
-      allow update: if isOwner(userId) && resource != null && isUserUpdateValid();
+      allow update: if isOwner(userId) && resource != null && isUserUpdateValid(userId);
       allow delete: if isOwner(userId) && resource != null;
     }
 

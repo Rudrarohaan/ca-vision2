@@ -22,15 +22,36 @@ import {
   FormLabel,
   FormMessage,
 } from '@/components/ui/form';
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useMemo } from 'react';
 import { updateUserProfileAction } from '@/app/actions';
 import { useToast } from '@/hooks/use-toast';
 import { useRouter } from 'next/navigation';
-import { Loader2 } from 'lucide-react';
+import { Loader2, Linkedin, Twitter } from 'lucide-react';
+import { Textarea } from '@/components/ui/textarea';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
+import { useFirestore, useDoc, useMemoFirebase } from '@/firebase';
+import { doc } from 'firebase/firestore';
+import type { UserProfile } from '@/lib/types';
+import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
+
 
 const profileSchema = z.object({
   displayName: z.string().min(1, 'Name is required.'),
   email: z.string().email(),
+  bio: z.string().max(160, 'Bio must be 160 characters or less.').optional(),
+  city: z.string().optional(),
+  caLevel: z.enum(['Foundation', 'Intermediate', 'Final']).optional(),
+  socialLinks: z.object({
+    twitter: z.string().url().optional().or(z.literal('')),
+    linkedin: z.string().url().optional().or(z.literal('')),
+  }).optional(),
+  photoURL: z.string().url().optional(),
 });
 
 export default function ProfilePage() {
@@ -38,12 +59,27 @@ export default function ProfilePage() {
   const { toast } = useToast();
   const router = useRouter();
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const firestore = useFirestore();
+
+  const userDocRef = useMemoFirebase(
+    () => (user ? doc(firestore, 'users', user.uid) : null),
+    [firestore, user]
+  );
+
+  const { data: userProfile, isLoading: isProfileLoading } = useDoc<UserProfile>(userDocRef);
 
   const form = useForm<z.infer<typeof profileSchema>>({
     resolver: zodResolver(profileSchema),
     defaultValues: {
       displayName: '',
       email: '',
+      bio: '',
+      city: '',
+      socialLinks: {
+        twitter: '',
+        linkedin: '',
+      },
+      photoURL: '',
     },
   });
 
@@ -52,9 +88,22 @@ export default function ProfilePage() {
       form.reset({
         displayName: user.displayName || '',
         email: user.email || '',
+        photoURL: user.photoURL || '',
       });
     }
-  }, [user, form]);
+    if (userProfile) {
+        form.reset({
+            ...form.getValues(),
+            bio: userProfile.bio || '',
+            city: userProfile.city || '',
+            caLevel: userProfile.caLevel,
+            socialLinks: {
+                twitter: userProfile.socialLinks?.twitter || '',
+                linkedin: userProfile.socialLinks?.linkedin || '',
+            },
+        })
+    }
+  }, [user, userProfile, form]);
   
   useEffect(() => {
     if (!isUserLoading && !user) {
@@ -63,8 +112,9 @@ export default function ProfilePage() {
   }, [isUserLoading, user, router]);
 
   async function onSubmit(values: z.infer<typeof profileSchema>) {
+    if (!user) return;
     setIsSubmitting(true);
-    const result = await updateUserProfileAction({ displayName: values.displayName });
+    const result = await updateUserProfileAction({ uid: user.uid, data: values });
     setIsSubmitting(false);
 
     if (result.success) {
@@ -72,9 +122,7 @@ export default function ProfilePage() {
         title: 'Profile Updated',
         description: 'Your profile has been updated successfully.',
       });
-      // Force a reload of the user to get the new display name
       await user?.reload(); 
-      // This is a bit of a hack to force a re-render in the header
       router.refresh();
 
     } else {
@@ -86,7 +134,9 @@ export default function ProfilePage() {
     }
   }
   
-  if (isUserLoading || !user) {
+  const isLoading = isUserLoading || isProfileLoading;
+
+  if (isLoading || !user) {
     return (
       <div className="flex h-[calc(100vh-4rem)] items-center justify-center">
         <Loader2 className="h-10 w-10 animate-spin text-primary" />
@@ -94,52 +144,176 @@ export default function ProfilePage() {
     );
   }
 
+  const getInitials = (name?: string | null) => {
+    if (!name) return 'U';
+    const names = name.split(' ');
+    if (names.length > 1) {
+      return `${names[0][0]}${names[names.length - 1][0]}`;
+    }
+    return name[0];
+  };
+
   return (
-    <div className="container mx-auto max-w-2xl py-8">
-      <Card>
-        <CardHeader>
-          <CardTitle className="font-headline text-3xl">Your Profile</CardTitle>
-          <CardDescription>
-            Manage your personal information.
-          </CardDescription>
-        </CardHeader>
-        <CardContent>
-          <Form {...form}>
-            <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
-              <FormField
-                control={form.control}
-                name="displayName"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Full Name</FormLabel>
-                    <FormControl>
-                      <Input placeholder="John Doe" {...field} />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-              <FormField
-                control={form.control}
-                name="email"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Email Address</FormLabel>
-                    <FormControl>
-                      <Input placeholder="m@example.com" {...field} disabled />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-              <Button type="submit" disabled={isSubmitting}>
-                {isSubmitting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-                Save Changes
-              </Button>
-            </form>
-          </Form>
-        </CardContent>
-      </Card>
+    <div className="container mx-auto max-w-4xl py-8">
+       <Form {...form}>
+        <form onSubmit={form.handleSubmit(onSubmit)} className="grid grid-cols-1 md:grid-cols-3 gap-8">
+            <div className="md:col-span-1">
+                 <Card>
+                    <CardHeader className="items-center">
+                         <Avatar className="h-24 w-24 mb-4">
+                            <AvatarImage src={form.getValues('photoURL')} alt={form.getValues('displayName')} />
+                            <AvatarFallback>{getInitials(form.getValues('displayName'))}</AvatarFallback>
+                        </Avatar>
+                        <CardTitle className="font-headline text-2xl">{form.getValues('displayName')}</CardTitle>
+                        <CardDescription>{form.getValues('email')}</CardDescription>
+                    </CardHeader>
+                    <CardContent>
+                        <FormField
+                            control={form.control}
+                            name="photoURL"
+                            render={({ field }) => (
+                                <FormItem>
+                                <FormLabel>Profile Picture URL</FormLabel>
+                                <FormControl>
+                                    <Input placeholder="https://..." {...field} />
+                                </FormControl>
+                                <FormMessage />
+                                </FormItem>
+                            )}
+                         />
+                    </CardContent>
+                 </Card>
+            </div>
+            <div className="md:col-span-2">
+                <Card>
+                    <CardHeader>
+                    <CardTitle className="font-headline text-3xl">Your Profile</CardTitle>
+                    <CardDescription>
+                        Manage your personal information.
+                    </CardDescription>
+                    </CardHeader>
+                    <CardContent className="space-y-6">
+                    <FormField
+                        control={form.control}
+                        name="displayName"
+                        render={({ field }) => (
+                        <FormItem>
+                            <FormLabel>Full Name</FormLabel>
+                            <FormControl>
+                            <Input placeholder="John Doe" {...field} />
+                            </FormControl>
+                            <FormMessage />
+                        </FormItem>
+                        )}
+                    />
+                    <FormField
+                        control={form.control}
+                        name="email"
+                        render={({ field }) => (
+                        <FormItem>
+                            <FormLabel>Email Address</FormLabel>
+                            <FormControl>
+                            <Input placeholder="m@example.com" {...field} disabled />
+                            </FormControl>
+                            <FormMessage />
+                        </FormItem>
+                        )}
+                    />
+                     <FormField
+                        control={form.control}
+                        name="bio"
+                        render={({ field }) => (
+                        <FormItem>
+                            <FormLabel>Bio</FormLabel>
+                            <FormControl>
+                                <Textarea placeholder="Tell us a little bit about yourself" className="resize-none" {...field} />
+                            </FormControl>
+                            <FormMessage />
+                        </FormItem>
+                        )}
+                    />
+                     <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                        <FormField
+                            control={form.control}
+                            name="city"
+                            render={({ field }) => (
+                                <FormItem>
+                                <FormLabel>City</FormLabel>
+                                <FormControl>
+                                    <Input placeholder="e.g., Mumbai" {...field} />
+                                </FormControl>
+                                <FormMessage />
+                                </FormItem>
+                            )}
+                        />
+                        <FormField
+                            control={form.control}
+                            name="caLevel"
+                            render={({ field }) => (
+                            <FormItem>
+                                <FormLabel>CA Level</FormLabel>
+                                <Select onValueChange={field.onChange} defaultValue={field.value}>
+                                <FormControl>
+                                    <SelectTrigger>
+                                    <SelectValue placeholder="Select your level" />
+                                    </SelectTrigger>
+                                </FormControl>
+                                <SelectContent>
+                                    <SelectItem value="Foundation">Foundation</SelectItem>
+                                    <SelectItem value="Intermediate">Intermediate</SelectItem>
+                                    <SelectItem value="Final">Final</SelectItem>
+                                </SelectContent>
+                                </Select>
+                                <FormMessage />
+                            </FormItem>
+                            )}
+                        />
+                     </div>
+                      <div>
+                        <Label className="text-sm font-medium">Social Links</Label>
+                        <div className="space-y-4 mt-2">
+                             <FormField
+                                control={form.control}
+                                name="socialLinks.twitter"
+                                render={({ field }) => (
+                                    <FormItem>
+                                        <FormControl>
+                                             <div className="relative">
+                                                <Twitter className="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-muted-foreground" />
+                                                <Input placeholder="https://x.com/username" {...field} className="pl-10" />
+                                            </div>
+                                        </FormControl>
+                                        <FormMessage />
+                                    </FormItem>
+                                )}
+                            />
+                            <FormField
+                                control={form.control}
+                                name="socialLinks.linkedin"
+                                render={({ field }) => (
+                                    <FormItem>
+                                        <FormControl>
+                                            <div className="relative">
+                                                <Linkedin className="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-muted-foreground" />
+                                                <Input placeholder="https://linkedin.com/in/username" {...field} className="pl-10" />
+                                            </div>
+                                        </FormControl>
+                                        <FormMessage />
+                                    </FormItem>
+                                )}
+                            />
+                        </div>
+                      </div>
+
+                    <Button type="submit" disabled={isSubmitting}>
+                        {isSubmitting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                        Save Changes
+                    </Button>
+                    </CardContent>
+                </Card>
+            </div>
+          </form>
+        </Form>
     </div>
   );
 }
