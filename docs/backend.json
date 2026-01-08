@@ -150,6 +150,10 @@
             "linkedin": {
               "type": "string",
               "format": "uri"
+            },
+            "instagram": {
+              "type": "string",
+              "format": "uri"
             }
           }
         }
@@ -319,3 +323,4 @@
     "reasoning": "This Firestore structure is designed to support a CA Exam Prep application with features like MCQ generation and user dashboards. The design prioritizes authorization independence, clarity, and scalability. User-specific data is segregated into user-owned subcollections, while MCQ generation logs are stored in a separate collection.\n\n*   **Authorization Independence:**  Each user's data (dashboard, MCQ analytics, subject analytics, and MCQ generations) is stored under their respective `userId`. This eliminates the need for `get()` calls in security rules to verify ownership. The `UserDashboard` includes the `userId`, ensuring that rules can validate access based on `request.auth.uid` without needing to fetch the User document. For MCQ generations, the `userId` is included directly in the document.\n\n*   **Structural Segregation:** User-specific data is stored in subcollections under the `/users/{userId}` path. This ensures that all documents within a subcollection have the same security requirements (ownership by the user). MCQ generation logs, which are not directly tied to a specific user but are still user-related, are stored in the `/mcq_generations` collection.\n\n*   **Access Modeling:**\n    *   **Private Data:** The `/users/{userId}` path enforces path-based ownership for dashboards and analytics data.\n    *   **Global Roles (DBAC):**  Not explicitly used in this structure, but could be easily integrated by adding collections like `/roles_admin/{uid}`.\n\n*   **QAPs (Rules are not Filters):** The use of segregated collections and path-based ownership enables secure `list` operations.  Listing MCQ Generations is possible in the `/mcq_generations` collection but might require filtering.\n\n*   **Invariants:** The `userId` field in the `UserDashboard` and `MCQGeneration` collections maintains the invariant of ownership. Timestamps (e.g., `generationDate` in `MCQGeneration`) can be enforced using security rules to ensure their integrity.\n\nDenormalization is used to ensure authorization independence. Specifically, the `userId` is included in both the `UserDashboard` and `MCQGeneration` documents, making it possible to validate ownership without needing to read the User document.  Similarly, `mcqAnalyticsId` is present on the `UserDashboard` to facilitate direct lookup without complex queries."
   }
 }
+    

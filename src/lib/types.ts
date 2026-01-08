@@ -77,6 +77,7 @@ export const UserProfileSchema = z.object({
   socialLinks: z.object({
     twitter: z.string().url().optional(),
     linkedin: z.string().url().optional(),
+    instagram: z.string().url().optional(),
   }).optional(),
 });
 
@@ -99,3 +100,5 @@ export const ChatInputSchema = z.object({
 export const ChatOutputSchema = z.object({
   content: z.string(),
 });
+
+    

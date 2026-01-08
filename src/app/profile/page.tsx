@@ -26,7 +26,7 @@ import { useEffect, useState, useMemo, useRef } from 'react';
 import { updateUserProfileAction } from '@/app/actions';
 import { useToast } from '@/hooks/use-toast';
 import { useRouter } from 'next/navigation';
-import { Loader2, Linkedin, Twitter, Upload, Camera } from 'lucide-react';
+import { Loader2, Linkedin, Twitter, Upload, Camera, Instagram } from 'lucide-react';
 import { Textarea } from '@/components/ui/textarea';
 import {
   Select,
@@ -51,6 +51,7 @@ const profileSchema = z.object({
   socialLinks: z.object({
     twitter: z.string().url().optional().or(z.literal('')),
     linkedin: z.string().url().optional().or(z.literal('')),
+    instagram: z.string().url().optional().or(z.literal('')),
   }).optional(),
   photoURL: z.string().url().optional(),
 });
@@ -82,6 +83,7 @@ export default function ProfilePage() {
       socialLinks: {
         twitter: '',
         linkedin: '',
+        instagram: '',
       },
       photoURL: '',
     },
@@ -139,6 +141,7 @@ export default function ProfilePage() {
             socialLinks: {
                 twitter: userProfile.socialLinks?.twitter || '',
                 linkedin: userProfile.socialLinks?.linkedin || '',
+                instagram: userProfile.socialLinks?.instagram || '',
             },
         })
     }
@@ -332,6 +335,21 @@ export default function ProfilePage() {
                                 </FormItem>
                             )}
                         />
+                        <FormField
+                            control={form.control}
+                            name="socialLinks.instagram"
+                            render={({ field }) => (
+                                <FormItem>
+                                    <FormControl>
+                                        <div className="relative">
+                                            <Instagram className="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-muted-foreground" />
+                                            <Input placeholder="https://instagram.com/username" {...field} className="pl-10" />
+                                        </div>
+                                    </FormControl>
+                                    <FormMessage />
+                                </FormItem>
+                            )}
+                        />
                     </div>
                   </div>
 
@@ -346,3 +364,5 @@ export default function ProfilePage() {
     </div>
   );
 }
+
+    
