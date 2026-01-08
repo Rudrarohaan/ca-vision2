@@ -11,7 +11,7 @@ import {
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Button } from '@/components/ui/button';
-import { BrainCircuit, Github, Lock, Mail, Loader2 } from 'lucide-react';
+import { BrainCircuit, Github, Lock, Mail, Loader2, User } from 'lucide-react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
@@ -171,7 +171,7 @@ export default function LoginPage() {
               </div>
               <div className="mt-6 text-center text-sm">
                 Don&apos;t have an account?{' '}
-                <Link href="#" className="underline text-primary">
+                <Link href="/signup" className="underline text-primary">
                   Sign up
                 </Link>
               </div>
