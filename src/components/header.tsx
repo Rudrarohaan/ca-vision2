@@ -15,10 +15,12 @@ import {
 } from '@/components/ui/dropdown-menu';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { getAuth, signOut } from 'firebase/auth';
+import { useRouter } from 'next/navigation';
 
 function UserNav() {
   const { user, isUserLoading } = useUser();
   const auth = getAuth();
+  const router = useRouter();
 
   if (isUserLoading) {
     return <div className="h-8 w-8 rounded-full bg-muted animate-pulse" />;
@@ -45,6 +47,11 @@ function UserNav() {
     }
     return name[0];
   };
+  
+  const handleSignOut = async () => {
+    await signOut(auth);
+    router.push('/login');
+  }
 
   return (
     <DropdownMenu>
@@ -60,15 +67,22 @@ function UserNav() {
         <DropdownMenuLabel className="font-normal">
           <div className="flex flex-col space-y-1">
             <p className="text-sm font-medium leading-none">
-              {user.displayName}
+              {user.displayName || 'User'}
             </p>
             <p className="text-xs leading-none text-muted-foreground">
-              {user.email}
+              {user.email || 'No email'}
             </p>
           </div>
         </DropdownMenuLabel>
         <DropdownMenuSeparator />
-        <DropdownMenuItem onClick={() => signOut(auth)}>
+        <DropdownMenuItem asChild>
+          <Link href="/profile">
+            <UserIcon className="mr-2 h-4 w-4" />
+            <span>Profile</span>
+          </Link>
+        </DropdownMenuItem>
+        <DropdownMenuSeparator />
+        <DropdownMenuItem onClick={handleSignOut}>
           <LogOut className="mr-2 h-4 w-4" />
           <span>Log out</span>
         </DropdownMenuItem>

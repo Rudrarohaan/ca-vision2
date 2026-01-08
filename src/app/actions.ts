@@ -9,6 +9,9 @@ import {
 import type { GenerateMcqsFromSyllabusInput, GenerateMcqsFromUploadedMaterialInput } from '@/lib/types';
 import { chat, ChatInputSchema, ChatOutputSchema } from '@/ai/flows/chat';
 import { z } from 'zod';
+import { getAuth } from 'firebase/auth';
+import { getApp } from 'firebase/app';
+import { updateProfile } from 'firebase/auth';
 
 
 export async function generateMcqsFromSyllabusAction(
@@ -17,8 +20,10 @@ export async function generateMcqsFromSyllabusAction(
   try {
     const mcqs = await generateMcqsFromSyllabus({
       ...input,
-      seed: Math.random(),
     });
+    if (!mcqs || mcqs.length === 0) {
+      throw new Error('No MCQs were generated. The model may have returned an empty or invalid response.');
+    }
     return mcqs;
   } catch (error) {
     console.error('Error generating MCQs from syllabus:', error);
@@ -26,7 +31,7 @@ export async function generateMcqsFromSyllabusAction(
   }
 }
 
-type UploadActionInput = Omit<GenerateMcqsFromUploadedMaterialInput, 'fileDataUri' | 'level' | 'subject' | 'seed'> & {
+type UploadActionInput = Omit<GenerateMcqsFromUploadedMaterialInput, 'fileDataUri' | 'level' | 'subject'> & {
   fileDataUri: string;
 };
 
@@ -57,5 +62,27 @@ export async function chatAction(
     return {
       content: 'An unexpected error occurred. Please try again.',
     };
+  }
+}
+
+export async function updateUserProfileAction(
+  data: { displayName: string }
+) {
+  try {
+    const auth = getAuth(getApp());
+    const user = auth.currentUser;
+
+    if (user) {
+      await updateProfile(user, {
+        displayName: data.displayName,
+      });
+      return { success: true };
+    } else {
+      throw new Error('User not authenticated.');
+    }
+  } catch (error) {
+    console.error('Error updating user profile:', error);
+    const errorMessage = error instanceof Error ? error.message : 'An unknown error occurred.';
+    return { success: false, error: errorMessage };
   }
 }
