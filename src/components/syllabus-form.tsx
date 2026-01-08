@@ -25,7 +25,7 @@ import {
 } from '@/components/ui/select';
 import { Input } from '@/components/ui/input';
 import { generateMcqsFromSyllabusAction } from '@/app/actions';
-import type { GenerateMcqsFromSyllabusOutput } from '@/ai/flows/generate-mcqs-from-syllabus';
+import type { GenerateMcqsFromSyllabusOutput } from '@/lib/types';
 import { useToast } from '@/hooks/use-toast';
 import { BookCheck, Brain, HardHat, GraduationCap, ArrowRight } from 'lucide-react';
 import { Label } from '@/components/ui/label';
@@ -249,11 +249,11 @@ export function SyllabusForm({ setMcqs, setLoading, setError }: SyllabusFormProp
             )}
             />
 
-            <Controller
+            <FormField
                 control={form.control}
                 name="count"
                 render={({ field }) => (
-                    <FormItem>
+                    <FormItem className="space-y-3">
                         <FormLabel className="text-lg font-semibold">Number of Questions</FormLabel>
                         <FormControl>
                             <Input

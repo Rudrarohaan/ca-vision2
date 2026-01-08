@@ -16,7 +16,7 @@ import {
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { Input } from '@/components/ui/input';
 import { generateMcqsFromUploadedMaterialAction } from '@/app/actions';
-import type { GenerateMcqsFromUploadedMaterialOutput } from '@/ai/flows/generate-mcqs-from-uploaded-material';
+import type { GenerateMcqsFromUploadedMaterialOutput } from '@/lib/types';
 import { useToast } from '@/hooks/use-toast';
 import { ArrowRight, UploadCloud, File, X } from 'lucide-react';
 import { Label } from '@/components/ui/label';
@@ -181,11 +181,11 @@ export function UploadForm({ setMcqs, setLoading, setError }: UploadFormProps) {
             )}
             />
 
-            <Controller
+            <FormField
                 control={form.control}
                 name="count"
                 render={({ field }) => (
-                    <FormItem>
+                    <FormItem className="space-y-3">
                         <FormLabel className="text-lg font-semibold">Number of Questions</FormLabel>
                         <FormControl>
                              <Input
