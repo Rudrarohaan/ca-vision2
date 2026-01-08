@@ -26,6 +26,7 @@ import {
 import {
   initiateEmailSignIn,
   initiateAnonymousSignIn,
+  initiateGoogleSignIn,
 } from '@/firebase/non-blocking-login';
 import { useAuth } from '@/firebase';
 import { useRouter } from 'next/navigation';
@@ -148,7 +149,7 @@ export default function LoginPage() {
           </div>
 
           <div className="grid grid-cols-2 gap-4">
-            <Button variant="outline" className="transition-all hover:border-primary hover:text-primary">
+            <Button onClick={() => initiateGoogleSignIn(auth)} variant="outline" className="transition-all hover:border-primary hover:text-primary">
               <GoogleIcon />
               <span className="ml-2">Google</span>
             </Button>
