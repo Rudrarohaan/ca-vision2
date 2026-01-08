@@ -26,7 +26,7 @@ import { useEffect, useState, useMemo } from 'react';
 import { updateUserProfileAction } from '@/app/actions';
 import { useToast } from '@/hooks/use-toast';
 import { useRouter } from 'next/navigation';
-import { Loader2, Linkedin, Twitter, Instagram } from 'lucide-react';
+import { Loader2, Linkedin, Twitter, Instagram, Upload } from 'lucide-react';
 import { Textarea } from '@/components/ui/textarea';
 import {
   Select,
@@ -35,10 +35,11 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
-import { useFirestore, useDoc, useMemoFirebase } from '@/firebase';
+import { useFirestore, useDoc, useMemoFirebase, useStorage } from '@/firebase';
 import { doc } from 'firebase/firestore';
 import type { UserProfile } from '@/lib/types';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
+import { ref, uploadBytes, getDownloadURL } from 'firebase/storage';
 
 const profileSchema = z.object({
   displayName: z.string().min(1, 'Name is required.'),
@@ -46,7 +47,7 @@ const profileSchema = z.object({
   bio: z.string().max(160, 'Bio must be 160 characters or less.').optional(),
   city: z.string().optional(),
   caLevel: z.enum(['Foundation', 'Intermediate', 'Final']).optional(),
-  photoURL: z.string().url().optional(),
+  photoURL: z.string().url().optional().or(z.literal('')),
   socialLinks: z.object({
     twitter: z.string().url().optional().or(z.literal('')),
     linkedin: z.string().url().optional().or(z.literal('')),
@@ -59,8 +60,11 @@ export default function ProfilePage() {
   const { toast } = useToast();
   const router = useRouter();
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [isUploading, setIsUploading] = useState(false);
+  const fileInputRef = React.useRef<HTMLInputElement>(null);
 
   const firestore = useFirestore();
+  const storage = useStorage();
 
   const userDocRef = useMemoFirebase(
     () => (user ? doc(firestore, 'users', user.uid) : null),
@@ -134,6 +138,41 @@ export default function ProfilePage() {
       });
     }
   }
+
+  const handleAvatarClick = () => {
+    fileInputRef.current?.click();
+  };
+
+  const handleFileChange = async (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (!file || !user) return;
+
+    setIsUploading(true);
+    const storageRef = ref(storage, `profile-pictures/${user.uid}`);
+    
+    try {
+      const snapshot = await uploadBytes(storageRef, file);
+      const downloadURL = await getDownloadURL(snapshot.ref);
+
+      form.setValue('photoURL', downloadURL);
+      await onSubmit(form.getValues());
+      
+      toast({
+        title: 'Profile Picture Updated',
+        description: 'Your new picture has been saved.',
+      });
+
+    } catch (error) {
+      console.error("Error uploading file:", error);
+      toast({
+        title: 'Upload Failed',
+        description: 'Could not upload your profile picture.',
+        variant: 'destructive',
+      });
+    } finally {
+      setIsUploading(false);
+    }
+  };
   
   const isLoading = isUserLoading || isProfileLoading;
 
@@ -156,165 +195,177 @@ export default function ProfilePage() {
 
   return (
     <div className="container mx-auto max-w-4xl py-8">
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
-        <Card className="md:col-span-1 items-center">
-            <CardHeader className="items-center">
-                <Avatar className="h-24 w-24 mb-2">
-                    <AvatarImage src={form.watch('photoURL')} alt={form.watch('displayName')} />
-                    <AvatarFallback>{getInitials(form.watch('displayName'))}</AvatarFallback>
-                </Avatar>
-                <CardTitle>{form.watch('displayName')}</CardTitle>
-                <CardDescription>{form.watch('email')}</CardDescription>
-            </CardHeader>
-        </Card>
-        <div className="md:col-span-2">
-          <Form {...form}>
-            <form onSubmit={form.handleSubmit(onSubmit)}>
-              <Card>
-                <CardHeader>
+      <Form {...form}>
+        <form onSubmit={form.handleSubmit(onSubmit)}>
+          <Card>
+            <CardHeader className="flex flex-row items-center gap-6">
+                <div className="relative">
+                  <Avatar className="h-24 w-24 cursor-pointer" onClick={handleAvatarClick}>
+                      <AvatarImage src={form.watch('photoURL')} alt={form.watch('displayName')} />
+                      <AvatarFallback>{getInitials(form.watch('displayName'))}</AvatarFallback>
+                  </Avatar>
+                  <input
+                    type="file"
+                    ref={fileInputRef}
+                    onChange={handleFileChange}
+                    className="hidden"
+                    accept="image/*"
+                  />
+                  {(isUploading) && (
+                    <div className="absolute inset-0 flex items-center justify-center rounded-full bg-black/50">
+                      <Loader2 className="h-8 w-8 animate-spin text-white" />
+                    </div>
+                  )}
+                   <div className="absolute bottom-0 right-0 flex h-7 w-7 items-center justify-center rounded-full bg-primary text-primary-foreground cursor-pointer" onClick={handleAvatarClick}>
+                        <Upload className="h-4 w-4" />
+                    </div>
+                </div>
+                <div className="flex-1">
                   <CardTitle>Your Profile</CardTitle>
                   <CardDescription>
                     Manage your personal information and preferences.
                   </CardDescription>
-                </CardHeader>
-                <CardContent className="space-y-6">
+                </div>
+            </CardHeader>
+            <CardContent className="space-y-6">
+            <FormField
+                control={form.control}
+                name="displayName"
+                render={({ field }) => (
+                <FormItem>
+                    <FormLabel>Full Name</FormLabel>
+                    <FormControl>
+                    <Input placeholder="John Doe" {...field} />
+                    </FormControl>
+                    <FormMessage />
+                </FormItem>
+                )}
+            />
+            <FormField
+                control={form.control}
+                name="email"
+                render={({ field }) => (
+                <FormItem>
+                    <FormLabel>Email Address</FormLabel>
+                    <FormControl>
+                    <Input placeholder="m@example.com" {...field} disabled />
+                    </FormControl>
+                    <FormMessage />
+                </FormItem>
+                )}
+            />
+              <FormField
+                control={form.control}
+                name="bio"
+                render={({ field }) => (
+                <FormItem>
+                    <FormLabel>Bio</FormLabel>
+                    <FormControl>
+                        <Textarea placeholder="Tell us a little bit about yourself" className="resize-none" {...field} />
+                    </FormControl>
+                    <FormMessage />
+                </FormItem>
+                )}
+            />
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                 <FormField
                     control={form.control}
-                    name="displayName"
+                    name="city"
                     render={({ field }) => (
-                    <FormItem>
-                        <FormLabel>Full Name</FormLabel>
+                        <FormItem>
+                        <FormLabel>City</FormLabel>
                         <FormControl>
-                        <Input placeholder="John Doe" {...field} />
+                            <Input placeholder="e.g., Mumbai" {...field} />
                         </FormControl>
                         <FormMessage />
-                    </FormItem>
+                        </FormItem>
                     )}
                 />
                 <FormField
                     control={form.control}
-                    name="email"
+                    name="caLevel"
                     render={({ field }) => (
                     <FormItem>
-                        <FormLabel>Email Address</FormLabel>
+                        <FormLabel>CA Level</FormLabel>
+                        <Select onValueChange={field.onChange} value={field.value}>
                         <FormControl>
-                        <Input placeholder="m@example.com" {...field} disabled />
+                            <SelectTrigger>
+                            <SelectValue placeholder="Select your level" />
+                            </SelectTrigger>
                         </FormControl>
+                        <SelectContent>
+                            <SelectItem value="Foundation">Foundation</SelectItem>
+                            <SelectItem value="Intermediate">Intermediate</SelectItem>
+                            <SelectItem value="Final">Final</SelectItem>
+                        </SelectContent>
+                        </Select>
                         <FormMessage />
                     </FormItem>
                     )}
                 />
-                  <FormField
-                    control={form.control}
-                    name="bio"
-                    render={({ field }) => (
-                    <FormItem>
-                        <FormLabel>Bio</FormLabel>
-                        <FormControl>
-                            <Textarea placeholder="Tell us a little bit about yourself" className="resize-none" {...field} />
-                        </FormControl>
-                        <FormMessage />
-                    </FormItem>
-                    )}
-                />
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                    <FormField
+              </div>
+              <div>
+                <Label className="text-sm font-medium">Social Links</Label>
+                <div className="space-y-4 mt-2">
+                      <FormField
                         control={form.control}
-                        name="city"
+                        name="socialLinks.twitter"
                         render={({ field }) => (
                             <FormItem>
-                            <FormLabel>City</FormLabel>
-                            <FormControl>
-                                <Input placeholder="e.g., Mumbai" {...field} />
-                            </FormControl>
-                            <FormMessage />
+                                <FormControl>
+                                      <div className="relative">
+                                        <svg className="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-muted-foreground" aria-hidden="true" xmlns="http://www.w3.org/2000/svg" fill="currentColor" viewBox="0 0 24 24">
+                                            <path d="M13.6 13.6v4.889c0 .03.014.06.042.074a.09.09 0 0 0 .077.012l3.58-1.096a.1.1 0 0 0 .07-.098v-3.92a.1.1 0 0 0-.1-.1h-3.67a.1.1 0 0 0-.1.1ZM2 12a10 10 0 1 1 20 0 10 10 0 0 1-20 0Zm10.4-4.11a.1.1 0 0 0-.1.1v3.92a.1.1 0 0 0 .1.1h3.67a.1.1 0 0 0 .1-.1V7.99a.1.1 0 0 0-.1-.1h-3.67Z"/>
+                                            <path d="M10.33,20.33a10.011,10.011,0,0,1-4.93-2.583,1,1,0,0,1,.36-1.687,8.04,8.04,0,0,0,6.28-6.28,1,1,0,0,1,1.687-.36,10.011,10.011,0,0,1,2.583,4.93,1,1,0,0,1-1.687.36,8.04,8.04,0,0,0-6.28,6.28,1,1,0,0,1-.36,1.687Z"/>
+                                        </svg>
+                                        <Input placeholder="https://x.com/username" {...field} className="pl-10" />
+                                    </div>
+                                </FormControl>
+                                <FormMessage />
                             </FormItem>
                         )}
                     />
                     <FormField
                         control={form.control}
-                        name="caLevel"
+                        name="socialLinks.linkedin"
                         render={({ field }) => (
-                        <FormItem>
-                            <FormLabel>CA Level</FormLabel>
-                            <Select onValueChange={field.onChange} value={field.value}>
-                            <FormControl>
-                                <SelectTrigger>
-                                <SelectValue placeholder="Select your level" />
-                                </SelectTrigger>
-                            </FormControl>
-                            <SelectContent>
-                                <SelectItem value="Foundation">Foundation</SelectItem>
-                                <SelectItem value="Intermediate">Intermediate</SelectItem>
-                                <SelectItem value="Final">Final</SelectItem>
-                            </SelectContent>
-                            </Select>
-                            <FormMessage />
-                        </FormItem>
+                            <FormItem>
+                                <FormControl>
+                                    <div className="relative">
+                                        <Linkedin className="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-muted-foreground" />
+                                        <Input placeholder="https://linkedin.com/in/username" {...field} className="pl-10" />
+                                    </div>
+                                </FormControl>
+                                <FormMessage />
+                            </FormItem>
                         )}
                     />
-                  </div>
-                  <div>
-                    <Label className="text-sm font-medium">Social Links</Label>
-                    <div className="space-y-4 mt-2">
-                          <FormField
-                            control={form.control}
-                            name="socialLinks.twitter"
-                            render={({ field }) => (
-                                <FormItem>
-                                    <FormControl>
-                                          <div className="relative">
-                                            <Twitter className="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-muted-foreground" />
-                                            <Input placeholder="https://twitter.com/username" {...field} className="pl-10" />
-                                        </div>
-                                    </FormControl>
-                                    <FormMessage />
-                                </FormItem>
-                            )}
-                        />
-                        <FormField
-                            control={form.control}
-                            name="socialLinks.linkedin"
-                            render={({ field }) => (
-                                <FormItem>
-                                    <FormControl>
-                                        <div className="relative">
-                                            <Linkedin className="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-muted-foreground" />
-                                            <Input placeholder="https://linkedin.com/in/username" {...field} className="pl-10" />
-                                        </div>
-                                    </FormControl>
-                                    <FormMessage />
-                                </FormItem>
-                            )}
-                        />
-                         <FormField
-                            control={form.control}
-                            name="socialLinks.instagram"
-                            render={({ field }) => (
-                                <FormItem>
-                                    <FormControl>
-                                        <div className="relative">
-                                            <Instagram className="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-muted-foreground" />
-                                            <Input placeholder="https://instagram.com/username" {...field} className="pl-10" />
-                                        </div>
-                                    </FormControl>
-                                    <FormMessage />
-                                </FormItem>
-                            )}
-                        />
-                    </div>
-                  </div>
+                     <FormField
+                        control={form.control}
+                        name="socialLinks.instagram"
+                        render={({ field }) => (
+                            <FormItem>
+                                <FormControl>
+                                    <div className="relative">
+                                        <Instagram className="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-muted-foreground" />
+                                        <Input placeholder="https://instagram.com/username" {...field} className="pl-10" />
+                                    </div>
+                                </FormControl>
+                                <FormMessage />
+                            </FormItem>
+                        )}
+                    />
+                </div>
+              </div>
 
-                <Button type="submit" disabled={isSubmitting}>
-                    {isSubmitting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-                    Save Changes
-                </Button>
-                </CardContent>
-              </Card>
-            </form>
-          </Form>
-        </div>
-      </div>
+            <Button type="submit" disabled={isSubmitting}>
+                {isSubmitting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                Save Changes
+            </Button>
+            </CardContent>
+          </Card>
+        </form>
+      </Form>
     </div>
   );
 }
