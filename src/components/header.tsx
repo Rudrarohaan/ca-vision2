@@ -1,12 +1,13 @@
 import Link from 'next/link';
 import { Button } from '@/components/ui/button';
 import { BrainCircuit } from 'lucide-react';
+import { MainNav } from './main-nav';
 
 export function Header() {
   return (
     <header className="sticky top-0 z-50 w-full border-b border-border/40 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
       <div className="container flex h-16 items-center justify-between">
-        <Link href="/" className="flex items-center gap-3">
+        <Link href="/" className="flex items-center gap-3 mr-8">
           <div className="flex h-10 w-10 items-center justify-center rounded-full bg-primary/10 glow-soft">
             <BrainCircuit className="h-6 w-6 text-primary" />
           </div>
@@ -14,7 +15,8 @@ export function Header() {
             CA Exam Prep
           </span>
         </Link>
-        <nav>
+        <MainNav />
+        <nav className="flex flex-1 justify-end">
           <Link href="/login">
             <Button variant="outline" className="transition-all hover:bg-accent/50 hover:text-accent-foreground">
               Login

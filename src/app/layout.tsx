@@ -3,6 +3,8 @@ import { Inter, Space_Grotesk } from 'next/font/google';
 import './globals.css';
 import { cn } from '@/lib/utils';
 import { Toaster } from '@/components/ui/toaster';
+import { Header } from '@/components/header';
+
 
 const fontBody = Inter({
   subsets: ['latin'],
@@ -33,7 +35,10 @@ export default function RootLayout({
           fontHeadline.variable
         )}
       >
-        {children}
+        <div className="flex min-h-screen flex-col bg-background text-foreground">
+          <Header />
+          <main className="flex-1 flex flex-col">{children}</main>
+        </div>
         <Toaster />
       </body>
     </html>
