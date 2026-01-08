@@ -1,3 +1,5 @@
+'use client';
+
 import Link from 'next/link';
 import {
   Card,
@@ -10,6 +12,30 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Button } from '@/components/ui/button';
 import { BrainCircuit, Github, Lock, Mail } from 'lucide-react';
+import { useForm } from 'react-hook-form';
+import { zodResolver } from '@hookform/resolvers/zod';
+import { z } from 'zod';
+import {
+  Form,
+  FormControl,
+  FormField,
+  FormItem,
+  FormLabel,
+  FormMessage,
+} from '@/components/ui/form';
+import {
+  initiateEmailSignIn,
+  initiateAnonymousSignIn,
+} from '@/firebase/non-blocking-login';
+import { useAuth } from '@/firebase';
+import { useRouter } from 'next/navigation';
+import { useUser } from '@/firebase/auth/use-user';
+import { useEffect } from 'react';
+
+const loginSchema = z.object({
+  email: z.string().email('Invalid email address.'),
+  password: z.string().min(6, 'Password must be at least 6 characters.'),
+});
 
 function GoogleIcon() {
   return (
@@ -23,8 +49,30 @@ function GoogleIcon() {
 }
 
 export default function LoginPage() {
+  const auth = useAuth();
+  const router = useRouter();
+  const { user } = useUser();
+
+  const form = useForm<z.infer<typeof loginSchema>>({
+    resolver: zodResolver(loginSchema),
+    defaultValues: {
+      email: '',
+      password: '',
+    },
+  });
+
+  useEffect(() => {
+    if (user) {
+      router.push('/');
+    }
+  }, [user, router]);
+
+  function onSubmit(values: z.infer<typeof loginSchema>) {
+    initiateEmailSignIn(auth, values.email, values.password);
+  }
+
   return (
-    <div className="flex min-h-screen items-center justify-center bg-background p-4">
+    <div className="flex min-h-[calc(100vh-4rem)] items-center justify-center bg-background p-4">
       <div className="absolute inset-0 -z-10 h-full w-full bg-background bg-[linear-gradient(to_right,#161616_1px,transparent_1px),linear-gradient(to_bottom,#161616_1px,transparent_1px)] bg-[size:4rem_4rem]">
         <div className="absolute bottom-0 left-0 right-0 top-0 bg-[radial-gradient(circle_500px_at_50%_200px,#1877f222,transparent)]"></div>
       </div>
@@ -40,54 +88,74 @@ export default function LoginPage() {
           </CardDescription>
         </CardHeader>
         <CardContent>
-          <div className="space-y-4">
-            <div className="space-y-2">
-              <Label htmlFor="email">Email</Label>
-              <div className="relative">
-                <Mail className="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-muted-foreground" />
-                <Input id="email" type="email" placeholder="m@example.com" required className="pl-10" />
-              </div>
-            </div>
-            <div className="space-y-2">
-              <div className="flex items-center">
-                <Label htmlFor="password">Password</Label>
-                <Link
-                  href="#"
-                  className="ml-auto inline-block text-sm underline"
-                >
-                  Forgot your password?
-                </Link>
-              </div>
-              <div className="relative">
-                 <Lock className="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-muted-foreground" />
-                <Input id="password" type="password" required className="pl-10" />
-              </div>
-            </div>
-            <Button type="submit" className="w-full !mt-6 bg-primary hover:bg-primary/90 text-primary-foreground font-bold shadow-lg shadow-primary/20 transition-all hover:shadow-primary/30 hover:scale-105">
-              Sign In
-            </Button>
-            
-            <div className="relative my-4">
-              <div className="absolute inset-0 flex items-center">
-                <span className="w-full border-t" />
-              </div>
-              <div className="relative flex justify-center text-xs uppercase">
-                <span className="bg-card px-2 text-muted-foreground">
-                  Or continue with
-                </span>
-              </div>
-            </div>
+          <Form {...form}>
+            <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
+              <FormField
+                control={form.control}
+                name="email"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Email</FormLabel>
+                    <FormControl>
+                      <div className="relative">
+                        <Mail className="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-muted-foreground" />
+                        <Input placeholder="m@example.com" {...field} className="pl-10" />
+                      </div>
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+              <FormField
+                control={form.control}
+                name="password"
+                render={({ field }) => (
+                  <FormItem>
+                     <div className="flex items-center">
+                        <FormLabel>Password</FormLabel>
+                        <Link
+                        href="#"
+                        className="ml-auto inline-block text-sm underline"
+                        >
+                        Forgot your password?
+                        </Link>
+                    </div>
+                    <FormControl>
+                      <div className="relative">
+                        <Lock className="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-muted-foreground" />
+                        <Input type="password" {...field} className="pl-10" />
+                      </div>
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+              <Button type="submit" className="w-full !mt-6 bg-primary hover:bg-primary/90 text-primary-foreground font-bold shadow-lg shadow-primary/20 transition-all hover:shadow-primary/30 hover:scale-105">
+                Sign In
+              </Button>
+            </form>
+          </Form>
 
-            <div className="grid grid-cols-2 gap-4">
-              <Button variant="outline" className="transition-all hover:border-primary hover:text-primary">
-                <GoogleIcon />
-                <span className="ml-2">Google</span>
-              </Button>
-              <Button variant="outline" className="transition-all hover:border-primary hover:text-primary">
-                <Github className="mr-2 h-5 w-5" />
-                GitHub
-              </Button>
+          <div className="relative my-4">
+            <div className="absolute inset-0 flex items-center">
+              <span className="w-full border-t" />
             </div>
+            <div className="relative flex justify-center text-xs uppercase">
+              <span className="bg-card px-2 text-muted-foreground">
+                Or continue with
+              </span>
+            </div>
+          </div>
+
+          <div className="grid grid-cols-2 gap-4">
+            <Button variant="outline" className="transition-all hover:border-primary hover:text-primary">
+              <GoogleIcon />
+              <span className="ml-2">Google</span>
+            </Button>
+             <Button onClick={() => initiateAnonymousSignIn(auth)} variant="outline" className="transition-all hover:border-primary hover:text-primary">
+              <Github className="mr-2 h-5 w-5" />
+              Guest
+            </Button>
           </div>
           <div className="mt-6 text-center text-sm">
             Don&apos;t have an account?{' '}
