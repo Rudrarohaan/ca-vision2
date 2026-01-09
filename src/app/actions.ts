@@ -13,7 +13,7 @@ import { getAuth, updateProfile } from 'firebase/auth';
 import { getApp } from 'firebase/app';
 import { getFirestore, doc, setDoc } from 'firebase/firestore';
 import { ChatInputSchema, ChatOutputSchema } from '@/lib/types';
-import { initializeFirebase } from '@/firebase';
+import { initializeFirebase } from '@/firebase/server-init';
 
 
 export async function generateMcqsFromSyllabusAction(
@@ -73,14 +73,13 @@ export async function updateUserProfileAction(
 ) {
   try {
     // This is a server-side action, so we must initialize Firebase here.
-    initializeFirebase();
+    const { auth, firestore } = initializeFirebase();
 
     // We must trust the `uid` passed in, assuming authorization checks happened before calling this action.
     // For a real app, you would get the user from the session/token here to be secure.
     
     // Update Firestore document
-    const db = getFirestore(getApp());
-    const userDocRef = doc(db, 'users', uid);
+    const userDocRef = doc(firestore, 'users', uid);
     // Ensure we are not trying to write undefined values to firestore
     const dataToSave = JSON.parse(JSON.stringify(data));
     await setDoc(userDocRef, dataToSave, { merge: true });
@@ -90,7 +89,6 @@ export async function updateUserProfileAction(
     // The displayName and photoURL should be updated on the client after sign-up/profile edit.
     // However, if this action is called from a client that has auth, we can try.
     try {
-        const auth = getAuth(getApp());
         if (auth.currentUser && auth.currentUser.uid === uid) {
              await updateProfile(auth.currentUser, {
                 displayName: data.displayName,
