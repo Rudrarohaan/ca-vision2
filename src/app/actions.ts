@@ -9,11 +9,11 @@ import {
 import type { GenerateMcqsFromSyllabusInput, GenerateMcqsFromUploadedMaterialInput, UserProfile } from '@/lib/types';
 import { chat } from '@/ai/flows/chat';
 import { z } from 'zod';
-import { getAuth, updateProfile } from 'firebase/auth';
-import { getApp } from 'firebase/app';
-import { getFirestore, doc, setDoc } from 'firebase/firestore';
+import { updateProfile } from 'firebase/auth';
+import { doc, setDoc } from 'firebase/firestore';
 import { ChatInputSchema, ChatOutputSchema } from '@/lib/types';
 import { initializeFirebase } from '@/firebase/server-init';
+import { setDocumentNonBlocking } from '@/firebase/non-blocking-updates';
 
 
 export async function generateMcqsFromSyllabusAction(
@@ -72,22 +72,16 @@ export async function updateUserProfileAction(
   { uid, data }: { uid: string; data: Partial<UserProfile> }
 ) {
   try {
-    // This is a server-side action, so we must initialize Firebase here.
     const { auth, firestore } = initializeFirebase();
 
-    // We must trust the `uid` passed in, assuming authorization checks happened before calling this action.
-    // For a real app, you would get the user from the session/token here to be secure.
-    
-    // Update Firestore document
     const userDocRef = doc(firestore, 'users', uid);
-    // Ensure we are not trying to write undefined values to firestore
-    const dataToSave = JSON.parse(JSON.stringify(data));
-    await setDoc(userDocRef, dataToSave, { merge: true });
+    
+    // Use the non-blocking update with error handling built-in
+    setDocumentNonBlocking(userDocRef, data, { merge: true });
 
-    // Note: We cannot update Firebase Auth's profile from a generic server action
-    // because it requires the client's auth instance.
-    // The displayName and photoURL should be updated on the client after sign-up/profile edit.
-    // However, if this action is called from a client that has auth, we can try.
+    // This part runs on the server and might not have access to the client's currentUser.
+    // The profile update on Firebase Auth should ideally be confirmed on the client-side
+    // after the user object is updated.
     try {
         if (auth.currentUser && auth.currentUser.uid === uid) {
              await updateProfile(auth.currentUser, {

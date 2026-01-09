@@ -55,6 +55,10 @@ const profileSchema = z.object({
   }).optional(),
 });
 
+// We only want to update a subset of fields.
+const updatableProfileSchema = profileSchema.omit({ email: true });
+
+
 export default function ProfilePage() {
   const { user, isUserLoading } = useUser();
   const { toast } = useToast();
@@ -122,7 +126,11 @@ export default function ProfilePage() {
   async function onSubmit(values: z.infer<typeof profileSchema>) {
     if (!user) return;
     setIsSubmitting(true);
-    const result = await updateUserProfileAction({ uid: user.uid, data: values });
+    
+    // Only pass the fields that are allowed to be updated.
+    const { email, ...updatableValues } = values;
+
+    const result = await updateUserProfileAction({ uid: user.uid, data: updatableValues });
     setIsSubmitting(false);
 
     if (result.success) {
