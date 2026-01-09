@@ -1,187 +1,132 @@
 /**
- * Core Philosophy: This ruleset enforces a strict user-ownership security model. All data is considered private and
- * accessible only by the authenticated user who created it. There is no concept of public data or shared access in
- * this model.
+ * This ruleset enforces a security model with two distinct zones: a private user-owned
+ * data space and a public-read space for shared educational content.
  *
- * Data Structure: The data is organized hierarchically. Most user-specific information, such as dashboards and
- * analytics, is stored in subcollections directly under a user's document at `/users/{userId}`. This structure
- * allows for simple and performant path-based security rules. A top-level collection, `/mcq_generations`, is used for
- * logging but still maintains strict ownership via a `userId` field within each document.
+ * Core Philosophy:
+ * The primary security goal is to strictly isolate each user's personal data while
+ * allowing broad read access to shared learning materials. User-specific information,
+ * such as profiles and uploaded files, is accessible only by the owning user.
+ * Shared content, like multiple-choice questions (MCQs), is publicly readable by anyone.
+ *
+ * Data Structure:
+ * - /users/{userId}: Each user has a root document containing their profile.
+ * - /users/{userId}/uploadedFiles/{fileId}: A subcollection for a user's private files.
+ *   This structure ensures that ownership is inherited from the path, simplifying rules.
+ * - /mcqs_foundation, /mcqs_intermediate, /mcqs_final: Top-level collections for
+ *   MCQs, segregated by exam level. This structural segregation allows for distinct
+ *   security postures and efficient public queries.
  *
  * Key Security Decisions:
- * - User Isolation: A user can only ever access their own data tree under `/users/{userId}`.
- * - No User Enumeration: Listing documents in the top-level `/users` collection is explicitly forbidden to prevent
- *   leaking user information.
- * - Ownership-Based Writes: All write operations (create, update, delete) are strictly controlled. Users can only
- *   write documents they own, either by path or by an explicit `userId` field on the document.
- * - Secure Listing: Listing documents is only permitted within a user's own subcollections. Listing on top-level
- *   collections that mix data from multiple users (like `/mcq_generations`) is disallowed to prevent accidental
- *   data leakage.
- *
- * Denormalization for Authorization: The rules rely on a denormalized `userId` field in documents within top-level
- * collections (e.g., `mcq_generations`) to enforce ownership without requiring costly `get()` calls to other documents.
- * This makes authorization checks fast and efficient. For data in user-specific subcollections, the `userId` in the
- * document path is the source of truth.
- *
- * Structural Segregation: User data is strictly segregated by placing it in subcollections under the user's unique
- * ID (e.g., `/users/{userId}/dashboards`). This pattern is inherently secure for list operations, as a query on that
- * path can only ever return documents belonging to that single user.
+ * - Strict User Ownership: All documents and subcollections under `/users/{userId}` are
+ *   aggressively protected. Only the authenticated user matching {userId} can perform
+ *   any operation (read, write, delete) on their own data.
+ * - No User Enumeration: Listing the entire `/users` collection is disallowed to
+ *   protect user privacy and prevent scraping of user IDs.
+ * - Public Read-Only Content: The MCQ collections are publicly readable by anyone,
+ *   including unauthenticated users, to support the educational purpose of the app.
+ * - Locked-Down Writes for Public Content: Writes to the public MCQ collections are
+ *   currently disabled (`if false;`). To enable content creation (e.g., by admins or
+ *   content creators), the 'MCQ' data model must be updated to include an ownership
+ *   field (like 'creatorId'), which can then be used to authorize writes.
+ * - Relational Integrity: On creation, documents within a user's data space (e.g.,
+ *   UserProfile, UploadedFile) must contain an internal ID field that matches the
+ *   user ID from the path, ensuring data consistency. This ID is immutable.
  */
 rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
 
-    // Helper Functions
-    // ----------------
-
-    /**
-     * Checks if the user is authenticated.
-     */
+    // Helper functions for reusable logic
     function isSignedIn() {
       return request.auth != null;
     }
 
-    /**
-     * Checks if the authenticated user's UID matches the provided userId from the path.
-     * This is used for securing user-owned data trees.
-     */
+    // Checks if the requesting user's UID matches the document's owner ID
     function isOwner(userId) {
       return isSignedIn() && request.auth.uid == userId;
     }
 
-    /**
-     * Checks if the authenticated user's UID matches an ownerId field on an existing document.
-     * This is used for securing documents in shared collections.
-     */
-    function isExistingDocOwner(ownerId) {
-      return isSignedIn() && request.auth.uid == ownerId && resource != null;
+    // Checks for ownership on an existing document, critical for safe updates/deletes
+    function isExistingOwner(userId) {
+      return isOwner(userId) && resource != null;
     }
 
     /**
-     * Validates that the 'id' field of a new User document matches the document's ID in the path,
-     * and that the email matches the auth token.
-     */
-    function isNewUserDocValid(userId) {
-      let data = request.resource.data;
-      return data.id == userId
-          && data.email == request.auth.token.email;
-    }
-
-    /**
-     * Enforces that key User document fields are immutable on update.
-     */
-    function isUserUpdateValid(userId) {
-       let data = request.resource.data;
-       return data.id == userId
-          && data.id == resource.data.id
-          && data.email == resource.data.email;
-    }
-
-    /**
-     * Validates that the 'userId' field of a new Dashboard document matches the user ID in the path.
-     */
-    function isNewDashboardDocValid(userId) {
-      return request.resource.data.userId == userId;
-    }
-
-    /**
-     * Enforces that the 'userId' field of a Dashboard document is immutable on update.
-     */
-    function isDashboardUpdateValid() {
-      return request.resource.data.userId == resource.data.userId;
-    }
-
-    /**
-     * Validates that a new MCQ Generation document is being created by the correct owner.
-     */
-    function isNewMcqGenerationDocValid() {
-      return request.resource.data.userId == request.auth.uid;
-    }
-
-    /**
-     * Enforces that the 'userId' field of an MCQ Generation document is immutable.
-     */
-    function isMcqGenerationUpdateValid() {
-      return request.resource.data.userId == resource.data.userId;
-    }
-
-
-    /**
-     * @description Manages user profile data. A user can create their own profile, but cannot see or list others.
+     * @description Controls access to a user's own profile document.
      * @path /users/{userId}
-     * @allow (get, update) A signed-in user with auth.uid 'user123' accessing their own document at /users/user123.
-     * @deny (list) Any user trying to list all documents in the /users collection.
-     * @deny (get) A user with auth.uid 'user123' trying to access /users/user456.
+     * @allow (create) A new user creating their own profile document.
+     * @deny (get) An authenticated user trying to read another user's profile.
      * @principle Restricts access to a user's own data tree and prevents user enumeration.
      */
     match /users/{userId} {
       allow get: if isOwner(userId);
-      allow list: if false;
-      allow create: if isOwner(userId) && isNewUserDocValid(userId);
-      allow update: if isOwner(userId) && resource != null && isUserUpdateValid(userId);
-      allow delete: if isOwner(userId) && resource != null;
+      allow list: if false; // Disallow listing all users to protect privacy
+      allow create: if isOwner(userId) && request.resource.data.id == userId;
+      allow update: if isExistingOwner(userId) && request.resource.data.id == resource.data.id;
+      allow delete: if isExistingOwner(userId);
     }
 
     /**
-     * @description Secures the user's private dashboard document.
-     * @path /users/{userId}/dashboards/{dashboardId}
-     * @allow (create, list) A signed-in user with auth.uid 'user123' managing documents under /users/user123/dashboards/.
-     * @deny (get) A user with auth.uid 'user456' trying to read a document at /users/user123/dashboards/dash999.
-     * @principle Enforces strict path-based ownership for all operations on user-specific subcollections.
+     * @description Secures files uploaded by a user. Access is restricted to the owner.
+     * @path /users/{userId}/uploadedFiles/{fileId}
+     * @allow (create) An authenticated user uploading a new file to their own account.
+     * @deny (list) A user trying to list files belonging to another user.
+     * @principle Enforces document ownership for a user's private subcollection.
      */
-    match /users/{userId}/dashboards/{dashboardId} {
+    match /users/{userId}/uploadedFiles/{fileId} {
       allow get: if isOwner(userId);
       allow list: if isOwner(userId);
-      allow create: if isOwner(userId) && isNewDashboardDocValid(userId);
-      allow update: if isOwner(userId) && resource != null && isDashboardUpdateValid();
-      allow delete: if isOwner(userId) && resource != null;
+      allow create: if isOwner(userId) && request.resource.data.userId == userId;
+      allow update: if isExistingOwner(userId) && request.resource.data.userId == resource.data.userId;
+      allow delete: if isExistingOwner(userId);
     }
 
     /**
-     * @description Secures a user's aggregated MCQ analytics data.
-     * @path /users/{userId}/mcq_analytics/{mcqAnalyticsId}
-     * @allow (create, list) A signed-in user with auth.uid 'user123' managing documents under /users/user123/mcq_analytics/.
-     * @deny (update) A user with auth.uid 'user456' trying to modify a document at /users/user123/mcq_analytics/analytics999.
-     * @principle Enforces strict path-based ownership for all operations on user-specific subcollections.
+     * @description Manages access to Foundation level multiple-choice questions.
+     * @path /mcqs_foundation/{mcqId}
+     * @allow (get, list) Any user, authenticated or not, reading the questions.
+     * @deny (create, update, delete) Any user trying to modify the shared question bank.
+     * @principle Provides public read access for shared content while securing writes.
      */
-    match /users/{userId}/mcq_analytics/{mcqAnalyticsId} {
-      allow get: if isOwner(userId);
-      allow list: if isOwner(userId);
-      allow create: if isOwner(userId);
-      allow update: if isOwner(userId) && resource != null;
-      allow delete: if isOwner(userId) && resource != null;
+    match /mcqs_foundation/{mcqId} {
+      allow get: if true;
+      allow list: if true;
+      // CRITICAL: Cannot implement owner-only writes. The 'MCQ' entity is missing an 'ownerId' or 'creatorId' field.
+      allow create: if false; // TODO: Add owner validation once the schema is updated with an ownership field.
+      allow update: if false; // TODO: Add owner validation once the schema is updated with an ownership field.
+      allow delete: if false; // TODO: Add owner validation once the schema is updated with an ownership field.
     }
 
     /**
-     * @description Secures a user's granular, subject-specific analytics data.
-     * @path /users/{userId}/mcq_analytics/{mcqAnalyticsId}/subject_analytics/{subjectAnalyticsId}
-     * @allow (create, get) A signed-in user with auth.uid 'user123' managing documents under their own analytics path.
-     * @deny (delete) A user with auth.uid 'user456' trying to delete a document under /users/user123/...
-     * @principle Enforces strict path-based ownership, inherited from the root of the user's data tree.
+     * @description Manages access to Intermediate level multiple-choice questions.
+     * @path /mcqs_intermediate/{mcqId}
+     * @allow (get, list) Any user, authenticated or not, reading the questions.
+     * @deny (create, update, delete) Any user trying to modify the shared question bank.
+     * @principle Provides public read access for shared content while securing writes.
      */
-    match /users/{userId}/mcq_analytics/{mcqAnalyticsId}/subject_analytics/{subjectAnalyticsId} {
-      allow get: if isOwner(userId);
-      allow list: if isOwner(userId);
-      allow create: if isOwner(userId);
-      allow update: if isOwner(userId) && resource != null;
-      allow delete: if isOwner(userId) && resource != null;
+    match /mcqs_intermediate/{mcqId} {
+      allow get: if true;
+      allow list: if true;
+      // CRITICAL: Cannot implement owner-only writes. The 'MCQ' entity is missing an 'ownerId' or 'creatorId' field.
+      allow create: if false; // TODO: Add owner validation once the schema is updated with an ownership field.
+      allow update: if false; // TODO: Add owner validation once the schema is updated with an ownership field.
+      allow delete: if false; // TODO: Add owner validation once the schema is updated with an ownership field.
     }
 
     /**
-     * @description Manages logs of MCQ generation events. Each log is private to the user who created it.
-     * @path /mcq_generations/{mcqGenerationId}
-     * @allow (create) A signed-in user creating a new generation log, with their own UID in the 'userId' field.
-     * @allow (get) A signed-in user reading a generation log where resource.data.userId matches their UID.
-     * @deny (list) Any user attempting to list documents, which would expose other users' activity.
-     * @deny (update) A user trying to modify a log where resource.data.userId is not their own.
-     * @principle Enforces document ownership for writes and reads in a top-level collection and prevents cross-user data leakage.
+     * @description Manages access to Final level multiple-choice questions.
+     * @path /mcqs_final/{mcqId}
+     * @allow (get, list) Any user, authenticated or not, reading the questions.
+     * @deny (create, update, delete) Any user trying to modify the shared question bank.
+     * @principle Provides public read access for shared content while securing writes.
      */
-    match /mcq_generations/{mcqGenerationId} {
-      allow get: if isExistingDocOwner(resource.data.userId);
-      allow list: if false;
-      allow create: if isSignedIn() && isNewMcqGenerationDocValid();
-      allow update: if isExistingDocOwner(resource.data.userId) && isMcqGenerationUpdateValid();
-      allow delete: if isExistingDocOwner(resource.data.userId);
+    match /mcqs_final/{mcqId} {
+      allow get: if true;
+      allow list: if true;
+      // CRITICAL: Cannot implement owner-only writes. The 'MCQ' entity is missing an 'ownerId' or 'creatorId' field.
+      allow create: if false; // TODO: Add owner validation once the schema is updated with an ownership field.
+      allow update: if false; // TODO: Add owner validation once the schema is updated with an ownership field.
+      allow delete: if false; // TODO: Add owner validation once the schema is updated with an ownership field.
     }
   }
 }
