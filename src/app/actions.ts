@@ -9,11 +9,11 @@ import {
 import type { GenerateMcqsFromSyllabusInput, GenerateMcqsFromUploadedMaterialInput, UserProfile } from '@/lib/types';
 import { chat } from '@/ai/flows/chat';
 import { z } from 'zod';
-import { getAuth } from 'firebase/auth';
+import { getAuth, updateProfile } from 'firebase/auth';
 import { getApp } from 'firebase/app';
-import { updateProfile } from 'firebase/auth';
 import { getFirestore, doc, setDoc } from 'firebase/firestore';
 import { ChatInputSchema, ChatOutputSchema } from '@/lib/types';
+import { initializeFirebase } from '@/firebase';
 
 
 export async function generateMcqsFromSyllabusAction(
@@ -72,7 +72,9 @@ export async function updateUserProfileAction(
   { uid, data }: { uid: string; data: Partial<UserProfile> }
 ) {
   try {
-    // This is a server-side action, so we can't rely on client-side `getAuth().currentUser`.
+    // This is a server-side action, so we must initialize Firebase here.
+    initializeFirebase();
+
     // We must trust the `uid` passed in, assuming authorization checks happened before calling this action.
     // For a real app, you would get the user from the session/token here to be secure.
     
