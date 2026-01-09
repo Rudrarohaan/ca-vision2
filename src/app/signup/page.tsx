@@ -60,7 +60,7 @@ export default function SignupPage() {
       const values = form.getValues();
       updateUserProfileAction({ 
         uid: user.uid, 
-        data: { displayName: values.displayName, email: values.email }
+        data: { displayName: values.displayName } // Pass only displayName
       }).then(() => {
         router.push('/');
       });
@@ -77,7 +77,7 @@ export default function SignupPage() {
     initiateEmailSignUp(auth, values.email, values.password);
   }
 
-  if (isUserLoading || user) {
+  if (isUserLoading || (user && !isSubmitting)) {
      return (
       <div className="flex h-[calc(100vh-4rem)] items-center justify-center">
         <Loader2 className="h-10 w-10 animate-spin text-primary" />
