@@ -10,7 +10,7 @@ import type { GenerateMcqsFromSyllabusInput, GenerateMcqsFromUploadedMaterialInp
 import { chat } from '@/ai/flows/chat';
 import { z } from 'zod';
 import { updateProfile } from 'firebase/auth';
-import { doc, setDoc } from 'firebase/firestore';
+import { doc } from 'firebase/firestore';
 import { ChatInputSchema, ChatOutputSchema } from '@/lib/types';
 import { initializeFirebase } from '@/firebase/server-init';
 import { setDocumentNonBlocking } from '@/firebase/non-blocking-updates';
@@ -69,7 +69,7 @@ export async function chatAction(
 }
 
 export async function updateUserProfileAction(
-  { uid, data }: { uid: string; data: Partial<UserProfile> }
+  { uid, data }: { uid: string; data: Partial<Omit<UserProfile, 'email'>> }
 ) {
   try {
     const { auth, firestore } = initializeFirebase();
@@ -79,9 +79,6 @@ export async function updateUserProfileAction(
     // Use the non-blocking update with error handling built-in
     setDocumentNonBlocking(userDocRef, data, { merge: true });
 
-    // This part runs on the server and might not have access to the client's currentUser.
-    // The profile update on Firebase Auth should ideally be confirmed on the client-side
-    // after the user object is updated.
     try {
         if (auth.currentUser && auth.currentUser.uid === uid) {
              await updateProfile(auth.currentUser, {

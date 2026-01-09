@@ -11,7 +11,7 @@ import {
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Button } from '@/components/ui/button';
-import { useForm, Controller } from 'react-hook-form';
+import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import {
@@ -22,11 +22,11 @@ import {
   FormLabel,
   FormMessage,
 } from '@/components/ui/form';
-import { useEffect, useState, useMemo, useRef } from 'react';
+import { useEffect, useState, useRef } from 'react';
 import { updateUserProfileAction } from '@/app/actions';
 import { useToast } from '@/hooks/use-toast';
 import { useRouter } from 'next/navigation';
-import { Loader2, Linkedin, Twitter, Instagram, Upload, X } from 'lucide-react';
+import { Loader2, Linkedin, Twitter, Instagram, Upload } from 'lucide-react';
 import { Textarea } from '@/components/ui/textarea';
 import {
   Select,
@@ -35,11 +35,12 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
-import { useFirestore, useDoc, useMemoFirebase, useStorage } from '@/firebase';
+import { useFirestore, useDoc, useMemoFirebase } from '@/firebase';
+import { getStorage, ref, uploadBytes, getDownloadURL } from 'firebase/storage';
 import { doc } from 'firebase/firestore';
 import type { UserProfile } from '@/lib/types';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
-import { ref, uploadBytes, getDownloadURL } from 'firebase/storage';
+import { initializeFirebase } from '@/firebase/server-init';
 
 const profileSchema = z.object({
   displayName: z.string().min(1, 'Name is required.'),
@@ -67,8 +68,7 @@ export default function ProfilePage() {
   const [isUploading, setIsUploading] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
-  const firestore = useFirestore();
-  const storage = useStorage();
+  const { firestore, storage } = initializeFirebase();
 
   const userDocRef = useMemoFirebase(
     () => (user ? doc(firestore, 'users', user.uid) : null),
@@ -123,14 +123,11 @@ export default function ProfilePage() {
     }
   }, [user, userProfile, isProfileLoading, form]);
   
-  async function onSubmit(values: z.infer<typeof profileSchema>) {
+  async function onSubmit(values: z.infer<typeof updatableProfileSchema>) {
     if (!user) return;
     setIsSubmitting(true);
-    
-    // Only pass the fields that are allowed to be updated.
-    const { email, ...updatableValues } = values;
 
-    const result = await updateUserProfileAction({ uid: user.uid, data: updatableValues });
+    const result = await updateUserProfileAction({ uid: user.uid, data: values });
     setIsSubmitting(false);
 
     if (result.success) {
@@ -195,7 +192,7 @@ export default function ProfilePage() {
   const getInitials = (name?: string | null) => {
     if (!name) return 'U';
     const names = name.split(' ');
-    if (names.length > 1 && names[1]) {
+    if (names.length > 1 && names[names.length-1]) {
       return `${names[0][0]}${names[names.length - 1][0]}`;
     }
     return name[0];
@@ -322,7 +319,7 @@ export default function ProfilePage() {
                             <FormItem>
                                 <FormControl>
                                       <div className="relative">
-                                        <X className="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-muted-foreground" />
+                                        <Twitter className="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-muted-foreground" />
                                         <Input placeholder="https://x.com/username" {...field} className="pl-10" />
                                     </div>
                                 </FormControl>
