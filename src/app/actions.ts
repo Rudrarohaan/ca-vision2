@@ -2,12 +2,6 @@
 
 import { ai } from '@/ai/genkit';
 import { z } from 'genkit';
-import { YoutubeTranscript } from 'youtube-transcript';
-import { googleAI } from '@genkit-ai/google-genai';
-import { GoogleAIFileManager } from "@google/generative-ai/server";
-import { writeFile, unlink } from "fs/promises";
-import path from "path";
-import os from "os";
 import type { GenerateMcqsFromSyllabusInput, GenerateMcqsFromUploadedMaterialInput, UserProfile } from '@/lib/types';
 import { updateProfile } from 'firebase/auth';
 import { doc } from 'firebase/firestore';
@@ -61,139 +55,57 @@ export async function generateMcqsFromUploadedMaterialAction(
 
 
 // --- CHATBOT LOGIC ---
+const GetInstantStudyAssistanceInputSchema = z.object({
+  question: z.string().describe('The CA-related question to be answered.'),
+});
+export type GetInstantStudyAssistanceInput = z.infer<typeof GetInstantStudyAssistanceInputSchema>;
 
-// --- CONFIGURATION ---
-const fileManager = new GoogleAIFileManager(process.env.GEMINI_API_KEY!);
+const GetInstantStudyAssistanceOutputSchema = z.object({
+  answer: z.string().min(1).describe('The answer to the question, formatted in Markdown.'),
+});
+export type GetInstantStudyAssistanceOutput = z.infer<typeof GetInstantStudyAssistanceOutputSchema>;
 
-// --- SCHEMAS ---
-const OutputSchema = z.object({
-  answer: z.string().describe('The answer to the question, formatted in Markdown.'),
+const getInstantStudyAssistancePrompt = ai.definePrompt({
+  name: 'getInstantStudyAssistancePrompt',
+  input: {schema: GetInstantStudyAssistanceInputSchema},
+  output: {schema: GetInstantStudyAssistanceOutputSchema},
+  prompt: `You are a helpful AI assistant for CA (Chartered Accountancy) students.
+Your goal is to provide accurate, well-structured, and easy-to-read answers to their questions.
+
+Format your response using simple Markdown. Use the following:
+- **Bold text** for emphasis and key terms (using double asterisks).
+- Bullet points for lists or steps (using a hyphen and a space: '- ').
+
+Start with a direct answer, then provide a more detailed explanation if needed.
+
+Question: {{{question}}}
+
+Answer:`,
 });
 
-// --- TOOL ---
-const getYoutubeTranscript = ai.defineTool(
+const getInstantStudyAssistanceFlow = ai.defineFlow(
   {
-    name: 'getYoutubeTranscript',
-    description: 'Returns the transcript of a YouTube video.',
-    inputSchema: z.object({ url: z.string() }),
-    outputSchema: z.string(),
-  },
-  async ({ url }) => {
-    try {
-      const transcript = await YoutubeTranscript.fetchTranscript(url);
-      return transcript.map(t => t.text).join(' ').slice(0, 50000);
-    } catch (e: any) {
-      return `Error getting transcript: ${e.message}`;
-    }
-  }
-);
-
-// --- FLOW ---
-const studyFlow = ai.defineFlow(
-  {
-    name: 'studyFlow',
-    inputSchema: z.any(),
-    outputSchema: OutputSchema,
+    name: 'getInstantStudyAssistanceFlow',
+    inputSchema: GetInstantStudyAssistanceInputSchema,
+    outputSchema: GetInstantStudyAssistanceOutputSchema,
   },
   async (input) => {
-    // FIX: Split the incoming history
-    // The LAST item in the array is the user's "Current Prompt"
-    // Everything before it is "Conversation History"
-    const allMessages = input.history || [];
-    
-    // Safety check: If empty, throw error
-    if (allMessages.length === 0) throw new Error("No messages provided to AI.");
-
-    const currentMessage = allMessages[allMessages.length - 1]; // Last item
-    const previousHistory = allMessages.slice(0, -1); // All items except last
-
-    const { output } = await ai.generate({
-      model: 'googleai/gemini-1.5-flash-latest',
-      output: { schema: OutputSchema },
-      tools: [getYoutubeTranscript],
-      config: { temperature: 0.3 },
-      
-      // 1. SYSTEM PROMPT (Defines behavior)
-      system: `You are a helpful CA (Chartered Accountancy) study assistant.
-              - **PDFs**: If a PDF is attached, answer purely based on its content.
-              - **YouTube**: If a YouTube link is provided, USE the tool to get the transcript.
-              - **Text**: If just text, answer using your general knowledge.
-              Format: Use **Bold** for key terms and Bullet points.`,
-
-      // 2. HISTORY (Past context)
-      history: previousHistory,
-
-      // 3. PROMPT (The trigger for THIS generation - Critical Fix)
-      prompt: currentMessage.content, 
-    });
-
-    if (!output) throw new Error("No response generated");
+    const { output } = await getInstantStudyAssistancePrompt(input);
+    if (!output) {
+        throw new Error("The AI model returned an empty response.");
+    }
     return output;
   }
 );
 
-// --- SERVER ACTION ---
-export async function getInstantStudyAssistance(formData: FormData) {
-  try {
-    const file = formData.get('file') as File | null;
-    const question = formData.get('question') as string;
-
-    // Validate Input
-    if (!question && !file) throw new Error("Please provide a question or a file.");
-
-    // Build the "Current Turn" object
-    let currentTurnContent: any[] = [];
-
-    // CASE 1: Handle PDF Upload
-    if (file) {
-      const buffer = Buffer.from(await file.arrayBuffer());
-      const tempPath = path.join(os.tmpdir(), file.name);
-      await writeFile(tempPath, buffer);
-
-      const uploadResult = await fileManager.uploadFile(tempPath, {
-        mimeType: file.type,
-        displayName: file.name,
-      });
-
-      // Wait for processing
-      let state = await fileManager.getFile(uploadResult.file.name);
-      while (state.state === "PROCESSING") {
-        await new Promise(r => setTimeout(r, 1000));
-        state = await fileManager.getFile(uploadResult.file.name);
-      }
-
-      // Add File + Text to the current prompt content
-      currentTurnContent = [
-        { media: { url: uploadResult.file.uri, contentType: file.type } },
-        { text: `Based on this document, answer: ${question}` }
-      ];
-
-      await unlink(tempPath); 
-    } 
-    // CASE 2: Text / YouTube Link
-    else {
-      currentTurnContent = [{ text: question }];
+export async function getInstantStudyAssistance(input: GetInstantStudyAssistanceInput): Promise<GetInstantStudyAssistanceOutput> {
+    const result = await getInstantStudyAssistanceFlow(input);
+    const validation = GetInstantStudyAssistanceOutputSchema.safeParse(result);
+    if (!validation.success) {
+        console.error("AI response validation failed:", validation.error);
+        throw new Error("The AI model failed to return a response that matched the required format. Please try again.");
     }
-
-    // Construct the History Array
-    // We send this as a single item array because it's a "one-shot" interaction.
-    // If you had a chat history, you would append this to it.
-    const history = [
-      {
-        role: 'user',
-        content: currentTurnContent
-      }
-    ];
-
-    // Call Flow
-    const result = await studyFlow({ history });
-
-    return result;
-
-  } catch (error: any) {
-    console.error("Study Assistance Error:", error);
-    return { answer: `Error: ${error.message}` };
-  }
+    return validation.data;
 }
 
 
