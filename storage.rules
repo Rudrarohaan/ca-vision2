@@ -1,0 +1,23 @@
+rules_version = '2';
+
+service firebase.storage {
+  match /b/{bucket}/o {
+    // By default, deny all reads and writes to ensure no data is accidentally exposed.
+    match /{allPaths=**} {
+      allow read, write: if false;
+    }
+
+    // Profile pictures are publicly readable, but only the authenticated owner can upload or change them.
+    // This allows user avatars to be displayed to anyone in the app while keeping uploads secure.
+    match /profile-pictures/{userId} {
+      allow read: if true;
+      allow write: if request.auth != null && request.auth.uid == userId;
+    }
+
+    // This rule secures a private folder for each user where they can store uploaded
+    // materials (like PDFs for MCQ generation). Access is restricted to the file owner.
+    match /users/{userId}/uploadedFiles/{fileName} {
+      allow read, write: if request.auth != null && request.auth.uid == userId;
+    }
+  }
+}
