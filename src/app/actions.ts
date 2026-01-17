@@ -1,4 +1,3 @@
-
 'use server';
 
 import { ai } from '@/ai/genkit';
@@ -109,7 +108,7 @@ const studyFlow = ai.defineFlow(
     const previousHistory = allMessages.slice(0, -1); // All items except last
 
     const { output } = await ai.generate({
-      model: googleAI.model('gemini-1.5-flash-001'),
+      model: 'googleai/gemini-1.5-flash-latest',
       output: { schema: OutputSchema },
       tools: [getYoutubeTranscript],
       config: { temperature: 0.3 },
@@ -269,5 +268,3 @@ export async function updateQuizStatsAction({
     return { success: false, error: 'Failed to update quiz stats.' };
   }
 }
-
-    
