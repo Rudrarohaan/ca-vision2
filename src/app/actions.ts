@@ -95,14 +95,20 @@ const chatFlow = ai.defineFlow(
       model: 'googleai/gemini-1.5-flash',
       history: [
         {
-          role: 'system',
+          role: 'user',
           content: [{ 
             text: `You are a CA exam assistant. 
             - If I upload a PDF, answer from that file.
             - If I give a YouTube link, use the tool to read the transcript.` 
           }]
         },
-        ...input.history // This history will contain the PDF "media" block if one was uploaded
+        {
+          role: 'model',
+          content: [{
+            text: "Understood. I'm ready to help."
+          }]
+        },
+        ...input.history
       ],
       tools: [getYoutubeTranscript],
     });
