@@ -1,26 +1,26 @@
 'use client';
 
 import React, { useState, useRef, useEffect, useCallback } from 'react';
-import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
+import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { Paperclip, Send, Youtube, File, Loader2, BrainCircuit } from 'lucide-react';
+import { Paperclip, Send, File, Loader2, BrainCircuit, X } from 'lucide-react';
 import { cn } from '@/lib/utils';
-import { chat } from '@/app/actions';
+import { getInstantStudyAssistance } from '@/app/actions';
+import ReactMarkdown from 'react-markdown';
 
 type Message = {
   role: 'user' | 'model';
-  content: { text?: string; media?: { url: string; contentType?: string } }[];
+  content: string; 
+  file?: File; 
   id: string;
 };
-
-const YOUTUBE_REGEX =
-  /(?:https?:\/\/)?(?:www\.)?(?:youtube\.com|youtu\.be)\/(?:watch\?v=)?([\w-]{11})/;
 
 export default function ChatPage() {
   const [messages, setMessages] = useState<Message[]>([]);
   const [input, setInput] = useState('');
   const [isLoading, setIsLoading] = useState(false);
+  const [attachedFile, setAttachedFile] = useState<File | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const scrollAreaRef = useRef<HTMLDivElement>(null);
 
@@ -35,44 +35,49 @@ export default function ChatPage() {
     scrollToBottom();
   }, [messages, scrollToBottom]);
 
-  const handleSendMessage = async (
-    text: string,
-    file?: File
-  ) => {
+  const handleSendMessage = async () => {
+    const text = input;
+    const file = attachedFile;
+
     if (!text && !file) return;
 
     setIsLoading(true);
     setInput('');
+    setAttachedFile(null);
     if (fileInputRef.current) {
       fileInputRef.current.value = '';
     }
 
+    const userMessage: Message = {
+      id: Date.now().toString(),
+      role: 'user',
+      content: text,
+      file: file ?? undefined,
+    };
+    setMessages(prev => [...prev, userMessage]);
+
     const formData = new FormData();
-    formData.append('message', text);
+    formData.append('question', text);
     if (file) {
       formData.append('file', file);
     }
-    formData.append('history', JSON.stringify(messages));
-
+    
     try {
-      const response = await chat(formData);
+      const response = await getInstantStudyAssistance(formData);
       
-      if (response.newHistory && response.newHistory.length > 0) {
-        setMessages(response.newHistory);
-      } else {
-         const errorMessage: Message = {
-            role: 'model',
-            content: [{ text: response.content || 'Sorry, an unexpected error occurred.' }],
-            id: Date.now().toString(),
-          };
-          setMessages(prev => [...prev, errorMessage]);
-      }
+      const modelMessage: Message = {
+        id: (Date.now() + 1).toString(),
+        role: 'model',
+        content: response.answer,
+      };
+      setMessages(prev => [...prev, modelMessage]);
+
     } catch (error) {
       console.error(error);
       const errorMessage: Message = {
+        id: (Date.now() + 1).toString(),
         role: 'model',
-        content: [{ text: 'Sorry, something went wrong. Please try again.' }],
-        id: Date.now().toString(),
+        content: 'Sorry, something went wrong. Please try again.',
       };
       setMessages(prev => [...prev, errorMessage]);
     } finally {
@@ -83,7 +88,14 @@ export default function ChatPage() {
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (file) {
-      handleSendMessage(input, file);
+      setAttachedFile(file);
+    }
+  };
+  
+  const removeFile = () => {
+    setAttachedFile(null);
+    if (fileInputRef.current) {
+      fileInputRef.current.value = '';
     }
   };
 
@@ -98,9 +110,9 @@ export default function ChatPage() {
              <div className="mx-auto mb-4 flex h-20 w-20 items-center justify-center rounded-full bg-primary/10 glow-soft">
                 <BrainCircuit className="h-10 w-10 text-primary" />
             </div>
-            <h2 className="font-headline text-3xl font-bold">CA Chat Assistant</h2>
+            <h2 className="font-headline text-3xl font-bold">CA Study Assistant</h2>
             <p className="max-w-md text-muted-foreground mt-2">
-              Ask me anything about CA topics, drop a YouTube link to summarize, or upload a PDF to ask questions.
+              Ask a question, paste a YouTube link, or upload a PDF to get started.
             </p>
           </div>
         ) : (
@@ -113,44 +125,35 @@ export default function ChatPage() {
               )}
             >
               {message.role === 'model' && (
-                <Avatar className="h-8 w-8 border">
+                <Avatar className="h-8 w-8 border flex-shrink-0">
                   <AvatarFallback className='bg-primary text-primary-foreground'>AI</AvatarFallback>
                 </Avatar>
               )}
               <div
                 className={cn(
-                  'max-w-lg rounded-xl px-4 py-3 shadow-sm',
+                  'max-w-prose rounded-xl px-4 py-3 shadow-sm prose dark:prose-invert prose-p:my-2 prose-headings:my-3 prose-li:my-1',
                   message.role === 'user'
-                    ? 'bg-primary text-primary-foreground'
+                    ? 'bg-primary text-primary-foreground prose-p:text-primary-foreground prose-strong:text-primary-foreground'
                     : 'bg-card'
                 )}
               >
-                {message.content.map((part, index) => {
-                  if (part.text) {
-                    const isYoutubeLink = YOUTUBE_REGEX.test(part.text);
-                    if (isYoutubeLink) {
-                        return (
-                            <div key={index} className="flex items-center gap-2">
-                                <Youtube className="h-5 w-5 text-red-500" />
-                                <span>Summarizing video...</span>
+                {message.role === 'user' && (
+                    <>
+                        {message.file && (
+                             <div className="flex items-center gap-2 p-2 mb-2 rounded-md bg-black/10">
+                                <File className="h-5 w-5 flex-shrink-0" />
+                                <span className='truncate'>{message.file.name}</span>
                             </div>
-                        )
-                    }
-                    return <p key={index} className="whitespace-pre-wrap">{part.text}</p>;
-                  }
-                  if (part.media) {
-                    return (
-                        <div key={index} className="flex items-center gap-2">
-                            <File className="h-5 w-5" />
-                            <span>Ready to answer questions about this file.</span>
-                        </div>
-                    )
-                  }
-                  return null;
-                })}
+                        )}
+                        <p className="whitespace-pre-wrap">{message.content}</p>
+                    </>
+                )}
+                {message.role === 'model' && (
+                  <ReactMarkdown>{message.content}</ReactMarkdown>
+                )}
               </div>
               {message.role === 'user' && (
-                <Avatar className="h-8 w-8 border">
+                <Avatar className="h-8 w-8 border flex-shrink-0">
                    <AvatarFallback>U</AvatarFallback>
                 </Avatar>
               )}
@@ -159,7 +162,7 @@ export default function ChatPage() {
         )}
          {isLoading && (
             <div className="flex items-start gap-4 justify-start">
-                 <Avatar className="h-8 w-8 border">
+                 <Avatar className="h-8 w-8 border flex-shrink-0">
                   <AvatarFallback className='bg-primary text-primary-foreground'>AI</AvatarFallback>
                 </Avatar>
                 <div className="max-w-lg rounded-xl px-4 py-3 shadow-sm bg-card flex items-center gap-2">
@@ -170,12 +173,23 @@ export default function ChatPage() {
         )}
       </div>
       <div className="border-t bg-background p-4">
+        {attachedFile && (
+            <div className="flex items-center justify-between rounded-md border p-2 mb-2 bg-muted/50">
+                <div className="flex items-center gap-2 overflow-hidden">
+                    <File className="h-5 w-5 text-muted-foreground flex-shrink-0" />
+                    <span className="text-sm font-medium truncate">{attachedFile.name}</span>
+                </div>
+                <Button variant="ghost" size="icon" onClick={removeFile} className="flex-shrink-0">
+                    <X className="h-4 w-4" />
+                </Button>
+            </div>
+        )}
         <div className="relative">
           <Input
             value={input}
             onChange={e => setInput(e.target.value)}
-            onKeyDown={e => e.key === 'Enter' && !e.shiftKey && handleSendMessage(input)}
-            placeholder="Ask about a CA topic or paste a YouTube link..."
+            onKeyDown={e => e.key === 'Enter' && !e.shiftKey && handleSendMessage()}
+            placeholder="Ask a question or paste a YouTube link..."
             className="h-12 w-full rounded-full bg-input pr-24 pl-12"
           />
           <button
@@ -197,8 +211,8 @@ export default function ChatPage() {
             type="submit"
             size="icon"
             className="absolute right-3 top-1/2 -translate-y-1/2 rounded-full"
-            onClick={() => handleSendMessage(input)}
-            disabled={isLoading || (!input && !fileInputRef.current?.files?.length)}
+            onClick={handleSendMessage}
+            disabled={isLoading || (!input && !attachedFile)}
           >
             <Send className="h-5 w-5" />
           </Button>

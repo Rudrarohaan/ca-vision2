@@ -10,19 +10,15 @@ import type { GenerateMcqsFromSyllabusInput, GenerateMcqsFromUploadedMaterialInp
 import { z } from 'genkit';
 import { updateProfile } from 'firebase/auth';
 import { doc } from 'firebase/firestore';
-import { ChatInputSchema, ChatOutputSchema } from '@/lib/types';
 import { initializeFirebase } from '@/firebase/server-init';
 import { setDocServer, updateDocServer, incrementServer } from '@/firebase/server-actions';
 import { ai } from '@/ai/genkit';
 import { YoutubeTranscript } from 'youtube-transcript';
+import { googleAI } from '@genkit-ai/google-genai';
 import { GoogleAIFileManager } from "@google/generative-ai/server";
 import { writeFile, unlink } from "fs/promises";
 import path from "path";
 import os from "os";
-
-// Correct: Set timeout to 60s to prevent crashes on large files
-const fileManager = new GoogleAIFileManager(process.env.GEMINI_API_KEY!);
-
 
 export async function generateMcqsFromSyllabusAction(
   input: Omit<GenerateMcqsFromSyllabusInput, 'seed'>
@@ -63,12 +59,22 @@ export async function generateMcqsFromUploadedMaterialAction(
   }
 }
 
-// 2. TOOL: Handle YouTube Links
-// We keep this because Gemini can't "watch" YouTube URLs directly yet.
+
+// --- CHATBOT LOGIC ---
+
+// 1. Initialize File Manager
+const fileManager = new GoogleAIFileManager(process.env.GEMINI_API_KEY!);
+
+// 2. Define Output Schema
+const OutputSchema = z.object({
+  answer: z.string().describe('The answer to the question, formatted in Markdown.'),
+});
+
+// 3. Define YouTube Tool
 const getYoutubeTranscript = ai.defineTool(
   {
     name: 'getYoutubeTranscript',
-    description: 'Get the transcript of a YouTube video.',
+    description: 'Returns the transcript of a YouTube video.',
     inputSchema: z.object({ url: z.string() }),
     outputSchema: z.string(),
   },
@@ -77,122 +83,99 @@ const getYoutubeTranscript = ai.defineTool(
       const transcript = await YoutubeTranscript.fetchTranscript(url);
       return transcript.map(t => t.text).join(' ').slice(0, 50000);
     } catch (e: any) {
-      return `Error: ${e.message}`;
+      return `Error getting transcript: ${e.message}`;
     }
   }
 );
 
-// 3. FLOW: The AI Logic
-const chatFlow = ai.defineFlow(
+// 4. Define the Main AI Flow
+const studyFlow = ai.defineFlow(
   {
-    name: 'chatFlow',
-    inputSchema: ChatInputSchema,
-    outputSchema: ChatOutputSchema,
+    name: 'studyFlow',
+    inputSchema: z.any(), // Flexible input for multimodal history
+    outputSchema: OutputSchema,
   },
   async (input) => {
-    // Correct: Use 1.5-flash (Stable, Fast, Supports PDFs)
-    const result = await ai.generate({
-      model: 'googleai/gemini-1.5-flash',
+    const { output } = await ai.generate({
+      model: googleAI.model('gemini-1.5-flash'),
+      output: { schema: OutputSchema },
+      tools: [getYoutubeTranscript],
+      config: { temperature: 0.3 }, // Lower temperature for more factual answers
       history: [
         {
-          role: 'user',
+          role: 'system',
           content: [{ 
-            text: `You are a CA exam assistant. 
-            - If I upload a PDF, answer from that file.
-            - If I give a YouTube link, use the tool to read the transcript.` 
+            text: `You are a helpful CA (Chartered Accountancy) study assistant.
+            - **PDFs**: If a PDF is attached, answer purely based on its content.
+            - **YouTube**: If a YouTube link is provided, USE the tool to get the transcript, then answer.
+            - **Text**: If just text, answer using your general knowledge.
+            
+            Format: Use **Bold** for key terms and Bullet points for lists.` 
           }]
         },
-        {
-          role: 'model',
-          content: [{
-            text: "Understood. I'm ready to help."
-          }]
-        },
-        ...input.history
+        ...input.history 
       ],
-      tools: [getYoutubeTranscript],
     });
 
-    return { content: result.text };
+    if (!output) throw new Error("No response generated");
+    return output;
   }
 );
 
-// 4. ACTION: The "Traffic Controller"
-// This is the most important part. It handles the FormData protocol.
-export async function chat(formData: FormData) {
+// 5. Define the Main Server Action (the "Traffic Controller")
+export async function getInstantStudyAssistance(formData: FormData) {
   try {
     const file = formData.get('file') as File | null;
-    const message = formData.get('message') as string;
-    const historyJson = formData.get('history') as string;
+    const question = formData.get('question') as string;
     
-    // We must manually parse the history because FormData can only send strings
-    const clientHistory = historyJson ? JSON.parse(historyJson) : [];
-    
-    // Sanitize history to remove any client-side-only fields like `id`
-    const history = clientHistory.map((msg: any) => ({
-      role: msg.role,
-      content: msg.content
-    }));
+    let history: any[] = [];
 
-
-    // --- CASE A: PDF UPLOAD ---
+    // Case A: Handle PDF Upload
     if (file) {
-      // 1. Save file to temp folder
       const buffer = Buffer.from(await file.arrayBuffer());
       const tempPath = path.join(os.tmpdir(), file.name);
       await writeFile(tempPath, buffer);
 
-      // 2. Upload to Google
       const uploadResult = await fileManager.uploadFile(tempPath, {
         mimeType: file.type,
         displayName: file.name,
       });
 
-      // 3. Wait for it to be ready
       let state = await fileManager.getFile(uploadResult.file.name);
       while (state.state === "PROCESSING") {
         await new Promise(r => setTimeout(r, 1000));
         state = await fileManager.getFile(uploadResult.file.name);
       }
 
-      // 4. Add the PDF to the chat history as "media"
-      // This is how Genkit knows a file is attached
       history.push({
         role: 'user',
         content: [
           { media: { url: uploadResult.file.uri, contentType: file.type } },
-          { text: "I have uploaded this document. " + message }
+          { text: `Based on this document, answer: ${question}` }
         ]
       });
 
-      await unlink(tempPath); // Cleanup
+      await unlink(tempPath);
     } 
-    // --- CASE B: TEXT / YOUTUBE ONLY ---
+    // Case B: Handle Text / YouTube Link
     else {
       history.push({
         role: 'user',
-        content: [{ text: message }]
+        content: [{ text: question }]
       });
     }
 
-    // Run the flow
-    const response = await chatFlow({ history });
-
-    // Return the response AND the updated history
-    return {
-      content: response.content,
-      newHistory: [
-        ...history, 
-        { role: 'model', content: [{ text: response.content }] }
-      ]
-    };
+    const result = await studyFlow({ history });
+    return result;
 
   } catch (error: any) {
-    console.error("Error:", error);
-    return { content: "Something went wrong: " + error.message, newHistory: [] };
+    console.error("Study Assistance Error:", error);
+    return { answer: `Error: ${error.message}` };
   }
 }
 
+
+// --- USER PROFILE & STATS ACTIONS ---
 
 export async function updateUserProfileAction(
   { uid, data }: { uid: string; data: Partial<Omit<UserProfile, 'email'>> }
@@ -201,7 +184,6 @@ export async function updateUserProfileAction(
     const { auth, firestore } = initializeFirebase();
     const userDocRef = doc(firestore, 'users', uid);
     
-    // Use the server-side update function
     await setDocServer(userDocRef, data, { merge: true });
 
     try {
@@ -213,8 +195,6 @@ export async function updateUserProfileAction(
              });
         }
     } catch (authError) {
-        // This is a workaround for the fact that updateProfile is not available in the admin SDK
-        // We can ignore this error as the client will eventually sync with the updated user record
         console.warn("Could not update Firebase Auth profile from server action. This is expected.");
     }
 

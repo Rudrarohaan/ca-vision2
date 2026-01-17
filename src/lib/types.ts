@@ -88,23 +88,3 @@ export const UserProfileSchema = z.object({
 
 
 export type UserProfile = z.infer<typeof UserProfileSchema>;
-
-export const HistorySchema = z.array(
-  z.object({
-    role: z.enum(['user', 'model']),
-    content: z.array(z.object({ text: z.string().optional(), media: z.object({
-        url: z.string(),
-        contentType: z.string().optional(),
-    }).optional() })),
-  })
-);
-
-export const ChatInputSchema = z.object({
-  history: HistorySchema,
-});
-
-export const ChatOutputSchema = z.object({
-  content: z.string(),
-});
-
-    
