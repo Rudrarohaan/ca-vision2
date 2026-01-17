@@ -91,9 +91,8 @@ const chatFlow = ai.defineFlow(
   },
   async (input) => {
     // Correct: Use 1.5-flash (Stable, Fast, Supports PDFs)
-    const llm = ai.getGenerator('googleai/gemini-1.5-flash');
-
-    const result = await llm.generate({
+    const result = await ai.generate({
+      model: 'googleai/gemini-1.5-flash',
       history: [
         {
           role: 'system',
