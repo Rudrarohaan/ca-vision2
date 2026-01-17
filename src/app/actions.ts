@@ -1,24 +1,25 @@
+
 'use server';
 
-import {
-  generateMcqsFromSyllabus,
-} from '@/ai/flows/generate-mcqs-from-syllabus';
-import {
-  generateMcqsFromUploadedMaterial,
-} from '@/ai/flows/generate-mcqs-from-uploaded-material';
-import type { GenerateMcqsFromSyllabusInput, GenerateMcqsFromUploadedMaterialInput, UserProfile } from '@/lib/types';
-import { z } from 'genkit';
-import { updateProfile } from 'firebase/auth';
-import { doc } from 'firebase/firestore';
-import { initializeFirebase } from '@/firebase/server-init';
-import { setDocServer, updateDocServer, incrementServer } from '@/firebase/server-actions';
 import { ai } from '@/ai/genkit';
+import { z } from 'genkit';
 import { YoutubeTranscript } from 'youtube-transcript';
 import { googleAI } from '@genkit-ai/google-genai';
 import { GoogleAIFileManager } from "@google/generative-ai/server";
 import { writeFile, unlink } from "fs/promises";
 import path from "path";
 import os from "os";
+import type { GenerateMcqsFromSyllabusInput, GenerateMcqsFromUploadedMaterialInput, UserProfile } from '@/lib/types';
+import { updateProfile } from 'firebase/auth';
+import { doc } from 'firebase/firestore';
+import { initializeFirebase } from '@/firebase/server-init';
+import { setDocServer, updateDocServer, incrementServer } from '@/firebase/server-actions';
+import {
+  generateMcqsFromSyllabus,
+} from '@/ai/flows/generate-mcqs-from-syllabus';
+import {
+  generateMcqsFromUploadedMaterial,
+} from '@/ai/flows/generate-mcqs-from-uploaded-material';
 
 export async function generateMcqsFromSyllabusAction(
   input: Omit<GenerateMcqsFromSyllabusInput, 'seed'>
@@ -62,15 +63,15 @@ export async function generateMcqsFromUploadedMaterialAction(
 
 // --- CHATBOT LOGIC ---
 
-// 1. Initialize File Manager
+// --- CONFIGURATION ---
 const fileManager = new GoogleAIFileManager(process.env.GEMINI_API_KEY!);
 
-// 2. Define Output Schema
+// --- SCHEMAS ---
 const OutputSchema = z.object({
   answer: z.string().describe('The answer to the question, formatted in Markdown.'),
 });
 
-// 3. Define YouTube Tool
+// --- TOOL ---
 const getYoutubeTranscript = ai.defineTool(
   {
     name: 'getYoutubeTranscript',
@@ -88,33 +89,43 @@ const getYoutubeTranscript = ai.defineTool(
   }
 );
 
-// 4. Define the Main AI Flow
+// --- FLOW ---
 const studyFlow = ai.defineFlow(
   {
     name: 'studyFlow',
-    inputSchema: z.any(), // Flexible input for multimodal history
+    inputSchema: z.any(),
     outputSchema: OutputSchema,
   },
   async (input) => {
+    // FIX: Split the incoming history
+    // The LAST item in the array is the user's "Current Prompt"
+    // Everything before it is "Conversation History"
+    const allMessages = input.history || [];
+    
+    // Safety check: If empty, throw error
+    if (allMessages.length === 0) throw new Error("No messages provided to AI.");
+
+    const currentMessage = allMessages[allMessages.length - 1]; // Last item
+    const previousHistory = allMessages.slice(0, -1); // All items except last
+
     const { output } = await ai.generate({
       model: googleAI.model('gemini-1.5-flash'),
       output: { schema: OutputSchema },
       tools: [getYoutubeTranscript],
-      config: { temperature: 0.3 }, // Lower temperature for more factual answers
-      history: [
-        {
-          role: 'system',
-          content: [{ 
-            text: `You are a helpful CA (Chartered Accountancy) study assistant.
-            - **PDFs**: If a PDF is attached, answer purely based on its content.
-            - **YouTube**: If a YouTube link is provided, USE the tool to get the transcript, then answer.
-            - **Text**: If just text, answer using your general knowledge.
-            
-            Format: Use **Bold** for key terms and Bullet points for lists.` 
-          }]
-        },
-        ...input.history 
-      ],
+      config: { temperature: 0.3 },
+      
+      // 1. SYSTEM PROMPT (Defines behavior)
+      system: `You are a helpful CA (Chartered Accountancy) study assistant.
+              - **PDFs**: If a PDF is attached, answer purely based on its content.
+              - **YouTube**: If a YouTube link is provided, USE the tool to get the transcript.
+              - **Text**: If just text, answer using your general knowledge.
+              Format: Use **Bold** for key terms and Bullet points.`,
+
+      // 2. HISTORY (Past context)
+      history: previousHistory,
+
+      // 3. PROMPT (The trigger for THIS generation - Critical Fix)
+      prompt: currentMessage.content, 
     });
 
     if (!output) throw new Error("No response generated");
@@ -122,15 +133,19 @@ const studyFlow = ai.defineFlow(
   }
 );
 
-// 5. Define the Main Server Action (the "Traffic Controller")
+// --- SERVER ACTION ---
 export async function getInstantStudyAssistance(formData: FormData) {
   try {
     const file = formData.get('file') as File | null;
     const question = formData.get('question') as string;
-    
-    let history: any[] = [];
 
-    // Case A: Handle PDF Upload
+    // Validate Input
+    if (!question && !file) throw new Error("Please provide a question or a file.");
+
+    // Build the "Current Turn" object
+    let currentTurnContent: any[] = [];
+
+    // CASE 1: Handle PDF Upload
     if (file) {
       const buffer = Buffer.from(await file.arrayBuffer());
       const tempPath = path.join(os.tmpdir(), file.name);
@@ -141,31 +156,39 @@ export async function getInstantStudyAssistance(formData: FormData) {
         displayName: file.name,
       });
 
+      // Wait for processing
       let state = await fileManager.getFile(uploadResult.file.name);
       while (state.state === "PROCESSING") {
         await new Promise(r => setTimeout(r, 1000));
         state = await fileManager.getFile(uploadResult.file.name);
       }
 
-      history.push({
-        role: 'user',
-        content: [
-          { media: { url: uploadResult.file.uri, contentType: file.type } },
-          { text: `Based on this document, answer: ${question}` }
-        ]
-      });
+      // Add File + Text to the current prompt content
+      currentTurnContent = [
+        { media: { url: uploadResult.file.uri, contentType: file.type } },
+        { text: `Based on this document, answer: ${question}` }
+      ];
 
-      await unlink(tempPath);
+      await unlink(tempPath); 
     } 
-    // Case B: Handle Text / YouTube Link
+    // CASE 2: Text / YouTube Link
     else {
-      history.push({
-        role: 'user',
-        content: [{ text: question }]
-      });
+      currentTurnContent = [{ text: question }];
     }
 
+    // Construct the History Array
+    // We send this as a single item array because it's a "one-shot" interaction.
+    // If you had a chat history, you would append this to it.
+    const history = [
+      {
+        role: 'user',
+        content: currentTurnContent
+      }
+    ];
+
+    // Call Flow
     const result = await studyFlow({ history });
+
     return result;
 
   } catch (error: any) {
@@ -186,8 +209,12 @@ export async function updateUserProfileAction(
     
     await setDocServer(userDocRef, data, { merge: true });
 
+    // This is a client-side only API, so it will fail in a server action.
+    // It's best to handle profile updates like displayName and photoURL
+    // directly on the client after the user authenticates or when they
+    // explicitly change it on their profile page.
     try {
-        const user = await auth.getUser(uid);
+        const user = auth.currentUser;
         if (user) {
              await updateProfile(user, {
                 displayName: data.displayName,
