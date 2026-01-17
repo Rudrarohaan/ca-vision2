@@ -6,7 +6,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Paperclip, Send, Youtube, File, Loader2, BrainCircuit } from 'lucide-react';
 import { cn } from '@/lib/utils';
-import { chatAction } from '@/app/actions';
+import { chat } from '@/app/actions';
 
 type Message = {
   role: 'user' | 'model';
@@ -16,17 +16,6 @@ type Message = {
 
 const YOUTUBE_REGEX =
   /(?:https?:\/\/)?(?:www\.)?(?:youtube\.com|youtu\.be)\/(?:watch\?v=)?([\w-]{11})/;
-
-
-const fileToDataUri = (file: File): Promise<string> => {
-  return new Promise((resolve, reject) => {
-    const reader = new FileReader();
-    reader.onload = () => resolve(reader.result as string);
-    reader.onerror = reject;
-    reader.readAsDataURL(file);
-  });
-};
-
 
 export default function ChatPage() {
   const [messages, setMessages] = useState<Message[]>([]);
@@ -53,45 +42,37 @@ export default function ChatPage() {
     if (!text && !file) return;
 
     setIsLoading(true);
-
-    const userMessageContent: Message['content'] = [];
-
-    if (text) {
-      userMessageContent.push({ text });
-    }
-    if (file) {
-        const fileDataUri = await fileToDataUri(file);
-        userMessageContent.push({ media: { url: fileDataUri, contentType: file.type } });
-    }
-
-    const newUserMessage: Message = {
-      role: 'user',
-      content: userMessageContent,
-      id: Date.now().toString(),
-    };
-
-    setMessages(prev => [...prev, newUserMessage]);
     setInput('');
+    if (fileInputRef.current) {
+      fileInputRef.current.value = '';
+    }
+
+    const formData = new FormData();
+    formData.append('message', text);
+    if (file) {
+      formData.append('file', file);
+    }
+    formData.append('history', JSON.stringify(messages));
 
     try {
-      const history = [...messages, newUserMessage].map(
-        ({ role, content }) => ({ role, content })
-      );
-
-      const response = await chatAction({ history });
+      const response = await chat(formData);
       
-      const modelMessage: Message = {
-        role: 'model',
-        content: [{ text: response.content }],
-        id: (Date.now() + 1).toString(),
-      };
-      setMessages(prev => [...prev, modelMessage]);
+      if (response.newHistory && response.newHistory.length > 0) {
+        setMessages(response.newHistory);
+      } else {
+         const errorMessage: Message = {
+            role: 'model',
+            content: [{ text: response.content || 'Sorry, an unexpected error occurred.' }],
+            id: Date.now().toString(),
+          };
+          setMessages(prev => [...prev, errorMessage]);
+      }
     } catch (error) {
       console.error(error);
       const errorMessage: Message = {
         role: 'model',
         content: [{ text: 'Sorry, something went wrong. Please try again.' }],
-        id: (Date.now() + 1).toString(),
+        id: Date.now().toString(),
       };
       setMessages(prev => [...prev, errorMessage]);
     } finally {

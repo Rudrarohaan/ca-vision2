@@ -3,4 +3,3 @@ config();
 
 import '@/ai/flows/generate-mcqs-from-uploaded-material.ts';
 import '@/ai/flows/generate-mcqs-from-syllabus.ts';
-import '@/ai/flows/chat.ts';

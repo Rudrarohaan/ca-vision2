@@ -7,13 +7,23 @@ import {
   generateMcqsFromUploadedMaterial,
 } from '@/ai/flows/generate-mcqs-from-uploaded-material';
 import type { GenerateMcqsFromSyllabusInput, GenerateMcqsFromUploadedMaterialInput, UserProfile } from '@/lib/types';
-import { chat } from '@/ai/flows/chat';
-import { z } from 'zod';
+import { z } from 'genkit';
 import { updateProfile } from 'firebase/auth';
 import { doc } from 'firebase/firestore';
 import { ChatInputSchema, ChatOutputSchema } from '@/lib/types';
 import { initializeFirebase } from '@/firebase/server-init';
 import { setDocServer, updateDocServer, incrementServer } from '@/firebase/server-actions';
+import { ai } from '@/ai/genkit';
+import { YoutubeTranscript } from 'youtube-transcript';
+import { GoogleAIFileManager } from "@google/generative-ai/server";
+import { writeFile, unlink } from "fs/promises";
+import path from "path";
+import os from "os";
+
+// Correct: Set timeout to 60s to prevent crashes on large files
+export const maxDuration = 60; 
+
+const fileManager = new GoogleAIFileManager(process.env.GEMINI_API_KEY!);
 
 
 export async function generateMcqsFromSyllabusAction(
@@ -55,18 +65,124 @@ export async function generateMcqsFromUploadedMaterialAction(
   }
 }
 
-export async function chatAction(
-  input: z.infer<typeof ChatInputSchema>
-): Promise<z.infer<typeof ChatOutputSchema>> {
+// 2. TOOL: Handle YouTube Links
+// We keep this because Gemini can't "watch" YouTube URLs directly yet.
+const getYoutubeTranscript = ai.defineTool(
+  {
+    name: 'getYoutubeTranscript',
+    description: 'Get the transcript of a YouTube video.',
+    inputSchema: z.object({ url: z.string() }),
+    outputSchema: z.string(),
+  },
+  async ({ url }) => {
+    try {
+      const transcript = await YoutubeTranscript.fetchTranscript(url);
+      return transcript.map(t => t.text).join(' ').slice(0, 50000);
+    } catch (e: any) {
+      return `Error: ${e.message}`;
+    }
+  }
+);
+
+// 3. FLOW: The AI Logic
+const chatFlow = ai.defineFlow(
+  {
+    name: 'chatFlow',
+    inputSchema: ChatInputSchema,
+    outputSchema: ChatOutputSchema,
+  },
+  async (input) => {
+    // Correct: Use 1.5-flash (Stable, Fast, Supports PDFs)
+    const llm = ai.getGenerator('googleai/gemini-1.5-flash');
+
+    const result = await llm.generate({
+      history: [
+        {
+          role: 'system',
+          content: [{ 
+            text: `You are a CA exam assistant. 
+            - If I upload a PDF, answer from that file.
+            - If I give a YouTube link, use the tool to read the transcript.` 
+          }]
+        },
+        ...input.history // This history will contain the PDF "media" block if one was uploaded
+      ],
+      tools: [getYoutubeTranscript],
+    });
+
+    return { content: result.text };
+  }
+);
+
+// 4. ACTION: The "Traffic Controller"
+// This is the most important part. It handles the FormData protocol.
+export async function chat(formData: FormData) {
   try {
-    return await chat(input);
-  } catch (error) {
-    console.error('Error in chat action:', error);
+    const file = formData.get('file') as File | null;
+    const message = formData.get('message') as string;
+    const historyJson = formData.get('history') as string;
+    
+    // We must manually parse the history because FormData can only send strings
+    let history = historyJson ? JSON.parse(historyJson) : [];
+
+    // --- CASE A: PDF UPLOAD ---
+    if (file) {
+      // 1. Save file to temp folder
+      const buffer = Buffer.from(await file.arrayBuffer());
+      const tempPath = path.join(os.tmpdir(), file.name);
+      await writeFile(tempPath, buffer);
+
+      // 2. Upload to Google
+      const uploadResult = await fileManager.uploadFile(tempPath, {
+        mimeType: file.type,
+        displayName: file.name,
+      });
+
+      // 3. Wait for it to be ready
+      let state = await fileManager.getFile(uploadResult.file.name);
+      while (state.state === "PROCESSING") {
+        await new Promise(r => setTimeout(r, 1000));
+        state = await fileManager.getFile(uploadResult.file.name);
+      }
+
+      // 4. Add the PDF to the chat history as "media"
+      // This is how Genkit knows a file is attached
+      history.push({
+        role: 'user',
+        content: [
+          { media: { url: uploadResult.file.uri, contentType: file.type } },
+          { text: "I have uploaded this document. " + message }
+        ]
+      });
+
+      await unlink(tempPath); // Cleanup
+    } 
+    // --- CASE B: TEXT / YOUTUBE ONLY ---
+    else {
+      history.push({
+        role: 'user',
+        content: [{ text: message }]
+      });
+    }
+
+    // Run the flow
+    const response = await chatFlow({ history });
+
+    // Return the response AND the updated history
     return {
-      content: 'An unexpected error occurred. Please try again.',
+      content: response.content,
+      newHistory: [
+        ...history, 
+        { role: 'model', content: [{ text: response.content }] }
+      ]
     };
+
+  } catch (error: any) {
+    console.error("Error:", error);
+    return { content: "Something went wrong: " + error.message, newHistory: [] };
   }
 }
+
 
 export async function updateUserProfileAction(
   { uid, data }: { uid: string; data: Partial<Omit<UserProfile, 'email'>> }
