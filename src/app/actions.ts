@@ -27,8 +27,8 @@ export async function generateMcqsFromSyllabusAction(
     }
     return mcqs;
   } catch (error) {
-    console.error('Error generating MCQs from syllabus:', error);
-    throw new Error('Failed to generate MCQs from syllabus.');
+    console.error('MCQ Generation Error (Syllabus):', error);
+    throw new Error(error instanceof Error ? error.message : 'An unknown error occurred');
   }
 }
 
@@ -46,10 +46,13 @@ export async function generateMcqsFromUploadedMaterialAction(
       subject: '',
       seed: Math.random(),
     });
+    if (!mcqs || mcqs.length === 0) {
+      throw new Error('No MCQs were generated from the uploaded file. The model may have returned an empty or invalid response.');
+    }
     return mcqs;
   } catch (error) {
-    console.error('Error generating MCQs from uploaded material:', error);
-    throw new Error('Failed to generate MCQs from uploaded material.');
+    console.error('MCQ Generation Error (Upload):', error);
+    throw new Error(error instanceof Error ? error.message : 'An unknown error occurred');
   }
 }
 
