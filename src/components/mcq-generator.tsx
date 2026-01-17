@@ -12,18 +12,35 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { SyllabusForm } from './syllabus-form';
 import { UploadForm } from './upload-form';
 import { McqList } from './mcq-list';
-import type { GenerateMcqsFromSyllabusOutput } from '@/ai/flows/generate-mcqs-from-syllabus';
+import type { GenerateMcqsFromSyllabusOutput } from '@/lib/types';
 import { Loader2 } from 'lucide-react';
+import { useUser } from '@/firebase/auth/use-user';
+import { incrementQuizzesGeneratedAction } from '@/app/actions';
 
 export function McqGenerator() {
   const [mcqs, setMcqs] = useState<GenerateMcqsFromSyllabusOutput | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const { user } = useUser();
 
   const handleReset = () => {
     setMcqs(null);
     setError(null);
   };
+
+  const onMcqsGenerated = (newMcqs: GenerateMcqsFromSyllabusOutput | null) => {
+    if (newMcqs && newMcqs.length > 0) {
+      setMcqs(newMcqs);
+      if (user) {
+        incrementQuizzesGeneratedAction({ userId: user.uid });
+      }
+    } else {
+      // This case handles generation failure or empty results
+      // The error state will be set within the forms, so we just ensure mcqs is null
+      setMcqs(null);
+    }
+  };
+
 
   if (loading) {
     return (
@@ -63,10 +80,10 @@ export function McqGenerator() {
               </TabsList>
               <div className="p-6">
                 <TabsContent value="syllabus">
-                  <SyllabusForm setMcqs={setMcqs} setLoading={setLoading} setError={setError} />
+                  <SyllabusForm onMcqsGenerated={onMcqsGenerated} setLoading={setLoading} setError={setError} />
                 </TabsContent>
                 <TabsContent value="upload">
-                  <UploadForm setMcqs={setMcqs} setLoading={setLoading} setError={setError} />
+                  <UploadForm onMcqsGenerated={onMcqsGenerated} setLoading={setLoading} setError={setError} />
                 </TabsContent>
               </div>
             </Tabs>
@@ -76,3 +93,5 @@ export function McqGenerator() {
     </div>
   );
 }
+
+    

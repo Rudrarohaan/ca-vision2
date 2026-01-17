@@ -81,6 +81,9 @@ export const UserProfileSchema = z.object({
       instagram: z.string().url().optional().or(z.literal('')),
     })
     .optional(),
+  quizzesGenerated: z.number().optional(),
+  totalMcqsAttempted: z.number().optional(),
+  totalMcqsCorrect: z.number().optional(),
 });
 
 
@@ -103,3 +106,5 @@ export const ChatInputSchema = z.object({
 export const ChatOutputSchema = z.object({
   content: z.string(),
 });
+
+    

@@ -13,7 +13,7 @@ import { updateProfile } from 'firebase/auth';
 import { doc } from 'firebase/firestore';
 import { ChatInputSchema, ChatOutputSchema } from '@/lib/types';
 import { initializeFirebase } from '@/firebase/server-init';
-import { setDocServer } from '@/firebase/server-actions';
+import { setDocServer, updateDocServer, incrementServer } from '@/firebase/server-actions';
 
 
 export async function generateMcqsFromSyllabusAction(
@@ -99,3 +99,42 @@ export async function updateUserProfileAction(
     return { success: false, error: errorMessage };
   }
 }
+
+export async function incrementQuizzesGeneratedAction({ userId }: { userId: string }) {
+  try {
+    const { firestore } = initializeFirebase();
+    const userDocRef = doc(firestore, 'users', userId);
+    await updateDocServer(userDocRef, {
+      quizzesGenerated: incrementServer(1),
+    });
+    return { success: true };
+  } catch (error) {
+    console.error('Error incrementing quizzes generated:', error);
+    return { success: false, error: 'Failed to update quiz count.' };
+  }
+}
+
+export async function updateQuizStatsAction({
+  userId,
+  score,
+  totalQuestions,
+}: {
+  userId: string;
+  score: number;
+  totalQuestions: number;
+}) {
+  try {
+    const { firestore } = initializeFirebase();
+    const userDocRef = doc(firestore, 'users', userId);
+    await updateDocServer(userDocRef, {
+      totalMcqsAttempted: incrementServer(totalQuestions),
+      totalMcqsCorrect: incrementServer(score),
+    });
+    return { success: true };
+  } catch (error) {
+    console.error('Error updating quiz stats:', error);
+    return { success: false, error: 'Failed to update quiz stats.' };
+  }
+}
+
+    

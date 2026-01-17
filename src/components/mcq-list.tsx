@@ -18,6 +18,9 @@ import {
 import { ArrowLeft, ArrowRight } from 'lucide-react';
 import { Progress } from './ui/progress';
 import { useRouter } from 'next/navigation';
+import { useUser } from '@/firebase/auth/use-user';
+import { updateQuizStatsAction } from '@/app/actions';
+
 
 type McqListProps = {
   mcqs: GenerateMcqsFromSyllabusOutput;
@@ -31,6 +34,7 @@ export function McqList({ mcqs: initialMcqs, onReset }: McqListProps) {
   const [currentQuestionIndex, setCurrentQuestionIndex] = useState(0);
   const [quizFinished, setQuizFinished] = useState(false);
   const router = useRouter();
+  const { user } = useUser();
 
   const handleOptionSelect = (option: string) => {
     const newMcqs = [...mcqs];
@@ -50,8 +54,21 @@ export function McqList({ mcqs: initialMcqs, onReset }: McqListProps) {
     }
   };
 
-  const handleSubmit = () => {
-    // Persist state to localStorage for the review page to access
+  const score = mcqs.reduce((acc, mcq) => {
+    return mcq.userAnswer === mcq.correctAnswer ? acc + 1 : acc;
+  }, 0);
+
+  const handleSubmit = async () => {
+    // Persist aggregated stats to Firestore
+    if (user) {
+      await updateQuizStatsAction({
+        userId: user.uid,
+        score,
+        totalQuestions: mcqs.length,
+      });
+    }
+
+    // Persist quiz state to localStorage for the review page to access
     localStorage.setItem('quizState', JSON.stringify(mcqs));
     setQuizFinished(true);
   };
@@ -60,9 +77,6 @@ export function McqList({ mcqs: initialMcqs, onReset }: McqListProps) {
     router.push('/review');
   };
 
-  const score = mcqs.reduce((acc, mcq) => {
-    return mcq.userAnswer === mcq.correctAnswer ? acc + 1 : acc;
-  }, 0);
 
   if (quizFinished) {
     return (
@@ -143,3 +157,5 @@ export function McqList({ mcqs: initialMcqs, onReset }: McqListProps) {
     </div>
   );
 }
+
+    

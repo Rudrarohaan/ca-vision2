@@ -40,12 +40,12 @@ const formSchema = z.object({
 });
 
 type UploadFormProps = {
-  setMcqs: (mcqs: GenerateMcqsFromUploadedMaterialOutput | null) => void;
+  onMcqsGenerated: (mcqs: GenerateMcqsFromUploadedMaterialOutput | null) => void;
   setLoading: (loading: boolean) => void;
   setError: (error: string | null) => void;
 };
 
-export function UploadForm({ setMcqs, setLoading, setError }: UploadFormProps) {
+export function UploadForm({ onMcqsGenerated, setLoading, setError }: UploadFormProps) {
   const { toast } = useToast();
   const [file, setFile] = useState<File | null>(null);
 
@@ -89,7 +89,7 @@ export function UploadForm({ setMcqs, setLoading, setError }: UploadFormProps) {
       const fileDataUri = await fileToDataUri(values.file);
       const result = await generateMcqsFromUploadedMaterialAction({ ...values, fileDataUri });
       if (result && result.length > 0) {
-        setMcqs(result);
+        onMcqsGenerated(result);
       } else {
         throw new Error('No MCQs were generated. Please try again.');
       }
@@ -97,6 +97,7 @@ export function UploadForm({ setMcqs, setLoading, setError }: UploadFormProps) {
       console.error(error);
       const errorMessage = error instanceof Error ? error.message : 'An unknown error occurred.';
       setError(errorMessage);
+      onMcqsGenerated(null);
       toast({
         title: 'Error Generating MCQs',
         description: errorMessage,
@@ -210,3 +211,5 @@ export function UploadForm({ setMcqs, setLoading, setError }: UploadFormProps) {
     </Form>
   );
 }
+
+    

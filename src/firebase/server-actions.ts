@@ -1,4 +1,4 @@
-import { setDoc, DocumentReference, SetOptions } from 'firebase/firestore';
+import { setDoc, updateDoc, increment, DocumentReference, SetOptions, UpdateData } from 'firebase/firestore';
 
 /**
  * A server-safe wrapper around the `setDoc` function from the Firebase SDK.
@@ -16,3 +16,25 @@ export async function setDocServer(docRef: DocumentReference, data: any, options
     throw error;
   }
 }
+
+/**
+ * A server-safe wrapper around the `updateDoc` function from the Firebase SDK.
+ * This function can be called from Server Actions.
+ * @param docRef The DocumentReference to update.
+ * @param data The data to update.
+ */
+export async function updateDocServer(docRef: DocumentReference, data: UpdateData<any>) {
+  try {
+    await updateDoc(docRef, data);
+  } catch (error) {
+    console.error("Firestore 'updateDoc' error from server action:", error);
+    throw error;
+  }
+}
+
+/**
+ * A server-safe export of the `increment` function.
+ */
+export const incrementServer = increment;
+
+    

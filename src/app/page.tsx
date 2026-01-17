@@ -11,17 +11,47 @@ import {
 import { Button } from '@/components/ui/button';
 import { BrainCircuit, MessageSquare, ArrowRight } from 'lucide-react';
 import { useUser } from '@/firebase/auth/use-user';
-
-
-const overallAnalytics = {
-  totalAttempted: 50,
-  overallAccuracy: 70,
-  mcqsGenerated: 5,
-};
+import { useFirestore, useDoc, useMemoFirebase } from '@/firebase';
+import { doc } from 'firebase/firestore';
+import type { UserProfile } from '@/lib/types';
+import { useMemo } from 'react';
+import { Skeleton } from '@/components/ui/skeleton';
 
 
 export default function DashboardPage() {
   const { user } = useUser();
+  const firestore = useFirestore();
+
+  const userDocRef = useMemoFirebase(
+    () => (user ? doc(firestore, 'users', user.uid) : null),
+    [firestore, user]
+  );
+  
+  const { data: userProfile, isLoading: isProfileLoading } = useDoc<UserProfile>(userDocRef);
+
+  const overallAnalytics = useMemo(() => {
+    if (!userProfile) {
+      return {
+        totalAttempted: 0,
+        overallAccuracy: 0,
+        mcqsGenerated: 0,
+      };
+    }
+    const accuracy =
+      userProfile.totalMcqsAttempted && userProfile.totalMcqsAttempted > 0
+        ? Math.round(
+            ((userProfile.totalMcqsCorrect || 0) /
+              userProfile.totalMcqsAttempted) *
+              100
+          )
+        : 0;
+
+    return {
+      totalAttempted: userProfile.totalMcqsAttempted || 0,
+      overallAccuracy: accuracy,
+      mcqsGenerated: userProfile.quizzesGenerated || 0,
+    };
+  }, [userProfile]);
 
   return (
     <div className="flex-1 space-y-8 p-4 md:p-8 pt-6">
@@ -82,21 +112,33 @@ export default function DashboardPage() {
             </CardDescription>
           </CardHeader>
           <CardContent className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-            <div className="flex flex-col items-center justify-center p-4 bg-secondary rounded-lg">
-                <p className="text-4xl font-bold text-primary">{overallAnalytics.totalAttempted}</p>
-                <p className="text-sm text-muted-foreground">Attempted</p>
-            </div>
-             <div className="flex flex-col items-center justify-center p-4 bg-secondary rounded-lg">
-                <p className="text-4xl font-bold text-primary">{overallAnalytics.overallAccuracy}%</p>
-                <p className="text-sm text-muted-foreground">Accuracy</p>
-            </div>
-            <div className="flex flex-col items-center justify-center p-4 bg-secondary rounded-lg">
-                <p className="text-4xl font-bold text-primary">{overallAnalytics.mcqsGenerated}</p>
-                <p className="text-sm text-muted-foreground">Quizzes Generated</p>
-            </div>
+             {isProfileLoading ? (
+                <>
+                    <Skeleton className="h-24" />
+                    <Skeleton className="h-24" />
+                    <Skeleton className="h-24" />
+                </>
+             ) : (
+                <>
+                    <div className="flex flex-col items-center justify-center p-4 bg-secondary rounded-lg">
+                        <p className="text-4xl font-bold text-primary">{overallAnalytics.totalAttempted}</p>
+                        <p className="text-sm text-muted-foreground">Attempted</p>
+                    </div>
+                    <div className="flex flex-col items-center justify-center p-4 bg-secondary rounded-lg">
+                        <p className="text-4xl font-bold text-primary">{overallAnalytics.overallAccuracy}%</p>
+                        <p className="text-sm text-muted-foreground">Accuracy</p>
+                    </div>
+                    <div className="flex flex-col items-center justify-center p-4 bg-secondary rounded-lg">
+                        <p className="text-4xl font-bold text-primary">{overallAnalytics.mcqsGenerated}</p>
+                        <p className="text-sm text-muted-foreground">Quizzes Generated</p>
+                    </div>
+                </>
+             )}
           </CardContent>
         </Card>
       </div>
     </div>
   );
 }
+
+    

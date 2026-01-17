@@ -39,12 +39,12 @@ const formSchema = z.object({
 });
 
 type SyllabusFormProps = {
-  setMcqs: (mcqs: GenerateMcqsFromSyllabusOutput | null) => void;
+  onMcqsGenerated: (mcqs: GenerateMcqsFromSyllabusOutput | null) => void;
   setLoading: (loading: boolean) => void;
   setError: (error: string | null) => void;
 };
 
-export function SyllabusForm({ setMcqs, setLoading, setError }: SyllabusFormProps) {
+export function SyllabusForm({ onMcqsGenerated, setLoading, setError }: SyllabusFormProps) {
   const { toast } = useToast();
   const [subjects, setSubjects] = useState<{name: string, value: string}[]>([]);
 
@@ -92,7 +92,7 @@ export function SyllabusForm({ setMcqs, setLoading, setError }: SyllabusFormProp
     try {
       const result = await generateMcqsFromSyllabusAction(values);
       if (result && result.length > 0) {
-        setMcqs(result);
+        onMcqsGenerated(result);
       } else {
         throw new Error('No MCQs were generated. Please try again.');
       }
@@ -100,6 +100,7 @@ export function SyllabusForm({ setMcqs, setLoading, setError }: SyllabusFormProp
       console.error(error);
       const errorMessage = error instanceof Error ? error.message : 'An unknown error occurred.';
       setError(errorMessage);
+      onMcqsGenerated(null);
       toast({
         title: 'Error Generating MCQs',
         description: errorMessage,
@@ -278,3 +279,5 @@ export function SyllabusForm({ setMcqs, setLoading, setError }: SyllabusFormProp
     </Form>
   );
 }
+
+    
