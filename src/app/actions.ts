@@ -115,13 +115,18 @@ export async function getInstantStudyAssistance(input: GetInstantStudyAssistance
 // --- USER PROFILE & STATS ACTIONS ---
 
 export async function updateUserProfileAction(
-  { uid, data }: { uid: string; data: Partial<Omit<UserProfile, 'email'>> }
+  { uid, data }: { uid: string; data: Partial<Omit<UserProfile, 'id' | 'email' | 'createdAt'>> }
 ) {
   try {
     const { auth, firestore } = initializeFirebase();
     const userDocRef = doc(firestore, 'users', uid);
     
-    await setDocServer(userDocRef, data, { merge: true });
+    const dataToSave = {
+      ...data,
+      updatedAt: new Date().toISOString(),
+    };
+
+    await setDocServer(userDocRef, dataToSave, { merge: true });
 
     // This is a client-side only API, so it will fail in a server action.
     // It's best to handle profile updates like displayName and photoURL

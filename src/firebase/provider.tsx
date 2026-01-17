@@ -2,10 +2,11 @@
 
 import React, { DependencyList, createContext, useContext, ReactNode, useMemo, useState, useEffect } from 'react';
 import { FirebaseApp } from 'firebase/app';
-import { Firestore } from 'firebase/firestore';
+import { Firestore, doc, getDoc, setDoc } from 'firebase/firestore';
 import { Auth, User, onAuthStateChanged } from 'firebase/auth';
 import { FirebaseErrorListener } from '@/components/FirebaseErrorListener'
 import { FirebaseStorage } from 'firebase/storage';
+import type { UserProfile } from '@/lib/types';
 
 interface FirebaseProviderProps {
   children: ReactNode;
@@ -74,8 +75,11 @@ export const FirebaseProvider: React.FC<FirebaseProviderProps> = ({
 
   // Effect to subscribe to Firebase auth state changes
   useEffect(() => {
-    if (!auth) { // If no Auth service instance, cannot determine user state
-      setUserAuthState({ user: null, isUserLoading: false, userError: new Error("Auth service not provided.") });
+    if (!auth || !firestore) {
+      const errorParts = [];
+      if (!auth) errorParts.push("Auth service not provided.");
+      if (!firestore) errorParts.push("Firestore service not provided.");
+      setUserAuthState({ user: null, isUserLoading: false, userError: new Error(errorParts.join(' ')) });
       return;
     }
 
@@ -83,7 +87,32 @@ export const FirebaseProvider: React.FC<FirebaseProviderProps> = ({
 
     const unsubscribe = onAuthStateChanged(
       auth,
-      (firebaseUser) => { // Auth state determined
+      async (firebaseUser) => { // Auth state determined
+        if (firebaseUser) {
+          const userDocRef = doc(firestore, 'users', firebaseUser.uid);
+          const userDoc = await getDoc(userDocRef);
+
+          if (!userDoc.exists()) {
+            // New user, create profile.
+            const { uid, email, displayName, photoURL } = firebaseUser;
+            const newUserProfile: UserProfile = {
+              id: uid,
+              email: email || '',
+              displayName: displayName || email?.split('@')[0] || 'Anonymous User',
+              photoURL: photoURL || '',
+              createdAt: new Date().toISOString(),
+              updatedAt: new Date().toISOString(),
+              quizzesGenerated: 0,
+              totalMcqsAttempted: 0,
+              totalMcqsCorrect: 0,
+            };
+            try {
+              await setDoc(userDocRef, newUserProfile);
+            } catch (error) {
+              console.error("FirebaseProvider: Error creating user profile:", error);
+            }
+          }
+        }
         setUserAuthState({ user: firebaseUser, isUserLoading: false, userError: null });
       },
       (error) => { // Auth listener error
@@ -92,7 +121,7 @@ export const FirebaseProvider: React.FC<FirebaseProviderProps> = ({
       }
     );
     return () => unsubscribe(); // Cleanup
-  }, [auth]); // Depends on the auth instance
+  }, [auth, firestore]); // Depends on the auth and firestore instances
 
   // Memoize the context value
   const contextValue = useMemo((): FirebaseContextState => {

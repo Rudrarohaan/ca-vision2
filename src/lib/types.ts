@@ -68,12 +68,12 @@ export type GenerateMcqsFromUploadedMaterialOutput = z.infer<
 
 export const UserProfileSchema = z.object({
   id: z.string().optional(),
-  email: z.string().email(),
+  email: z.string().email().optional().or(z.literal('')),
   displayName: z.string().optional(),
   bio: z.string().optional(),
   city: z.string().optional(),
   caLevel: z.enum(['Foundation', 'Intermediate', 'Final']).optional(),
-  photoURL: z.string().url().optional(),
+  photoURL: z.string().url().optional().or(z.literal('')),
   socialLinks: z
     .object({
       twitter: z.string().url().optional().or(z.literal('')),
@@ -84,6 +84,8 @@ export const UserProfileSchema = z.object({
   quizzesGenerated: z.number().optional(),
   totalMcqsAttempted: z.number().optional(),
   totalMcqsCorrect: z.number().optional(),
+  createdAt: z.string().optional(),
+  updatedAt: z.string().optional(),
 });
 
 

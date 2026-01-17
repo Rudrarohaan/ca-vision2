@@ -11,7 +11,7 @@ import {
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Button } from '@/components/ui/button';
-import { BrainCircuit, Github, Lock, Mail, Loader2, User } from 'lucide-react';
+import { BrainCircuit, Lock, Mail, Loader2, User } from 'lucide-react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
@@ -185,7 +185,7 @@ export default function LoginPage() {
                   <span className="ml-2">Google</span>
                 </Button>
                 <Button onClick={onAnonymousSignIn} variant="outline" className="transition-all hover:border-primary hover:text-primary">
-                  <Github className="mr-2 h-5 w-5" />
+                  <User className="mr-2 h-5 w-5" />
                   Guest
                 </Button>
               </div>
