@@ -126,7 +126,14 @@ export async function chat(formData: FormData) {
     const historyJson = formData.get('history') as string;
     
     // We must manually parse the history because FormData can only send strings
-    let history = historyJson ? JSON.parse(historyJson) : [];
+    const clientHistory = historyJson ? JSON.parse(historyJson) : [];
+    
+    // Sanitize history to remove any client-side-only fields like `id`
+    const history = clientHistory.map((msg: any) => ({
+      role: msg.role,
+      content: msg.content
+    }));
+
 
     // --- CASE A: PDF UPLOAD ---
     if (file) {
@@ -255,5 +262,3 @@ export async function updateQuizStatsAction({
     return { success: false, error: 'Failed to update quiz stats.' };
   }
 }
-
-    
