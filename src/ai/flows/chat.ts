@@ -40,7 +40,7 @@ const chatFlow = ai.defineFlow(
     const llm = ai.getGenerator('googleai/gemini-2.5-flash');
 
     const result = await llm.generate({
-        prompt: [
+        history: [
             {
               role: 'system',
               content: [
