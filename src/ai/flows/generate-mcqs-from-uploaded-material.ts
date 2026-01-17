@@ -7,6 +7,7 @@
  */
 
 import {ai} from '@/ai/genkit';
+import {googleAI} from '@genkit-ai/google-genai';
 import {
   GenerateMcqsFromUploadedMaterialInputSchema,
   GenerateMcqsFromUploadedMaterialOutputSchema,
@@ -22,34 +23,48 @@ export async function generateMcqsFromUploadedMaterial(
   return generateMcqsFromUploadedMaterialFlow(input);
 }
 
-const generateMcqsPrompt = ai.definePrompt({
-  name: 'generateMcqsFromUploadedMaterialPrompt',
-  input: {schema: GenerateMcqsFromUploadedMaterialInputSchema},
-  output: {schema: GenerateMcqsFromUploadedMaterialOutputSchema},
-  prompt: `You are an expert in generating multiple-choice questions (MCQs) for CA (Chartered Accountancy) exams.
-
-  I want you to act as an examiner creating a quiz from the provided document.
-  
-  Step 1: Randomly select a specific chapter, page range, or concept from the middle or end of the document. (Random Seed: {{{seed}}}).
-  Step 2: Generate {{count}} MCQs with {{difficulty}} difficulty strictly focused on that specific selected area.
-  
-  Each MCQ should have four options (A, B, C, D), a correct answer, and a detailed explanation.
-
-  Uploaded Material: {{media url=fileDataUri}}
-
-  Ensure the questions are not generic overview questions, but test specific details from the selected section.
-
-  Output the MCQs in JSON format.`,
-});
-
 const generateMcqsFromUploadedMaterialFlow = ai.defineFlow(
   {
     name: 'generateMcqsFromUploadedMaterialFlow',
     inputSchema: GenerateMcqsFromUploadedMaterialInputSchema,
     outputSchema: GenerateMcqsFromUploadedMaterialOutputSchema,
   },
-  async input => {
-    const {output} = await generateMcqsPrompt(input);
-    return output!;
+  async (input) => {
+    // 1. Generate a Real Random Seed
+    const randomSeed = Math.floor(Math.random() * 10000);
+
+    // 2. Use ai.generate directly (More robust than definePrompt for files)
+    const { output } = await ai.generate({
+      model: googleAI.model('gemini-1.5-flash'), // Explicitly use the fast/cheap model
+      output: { 
+        schema: GenerateMcqsFromUploadedMaterialOutputSchema 
+      },
+      config: {
+        temperature: 0.5, // Balance between creativity and accuracy
+      },
+      prompt: [
+        // A. Pass the File Explicitly as a Media Object
+        // This assumes input.fileDataUri is a valid GS URI (gs://...) or Data URI (data:...)
+        { 
+          media: { url: input.fileDataUri } 
+        },
+        
+        // B. Pass the Text Prompt with the Seed injected
+        { 
+          text: `You are an expert CA examiner. 
+          
+          Step 1: Using Random Seed ${randomSeed}, select a specific random chapter or concept from the attached document.
+          Step 2: Generate ${input.count} MCQs with '${input.difficulty}' difficulty strictly from that section.
+
+          Rules:
+          - Each MCQ must have 4 options (A, B, C, D) and a detailed explanation.
+          - Avoid generic questions. Test specific details.` 
+        }
+      ]
+    });
+
+    if (!output) throw new Error("AI failed to generate MCQs");
+    
+    return output;
   }
 );
