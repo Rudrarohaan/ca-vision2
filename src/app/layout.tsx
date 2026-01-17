@@ -21,6 +21,8 @@ export const metadata: Metadata = {
   description: 'Generate MCQs for CA exams using AI',
 };
 
+export const maxDuration = 60;
+
 export default function RootLayout({
   children,
 }: Readonly<{

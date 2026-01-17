@@ -21,8 +21,6 @@ import path from "path";
 import os from "os";
 
 // Correct: Set timeout to 60s to prevent crashes on large files
-export const maxDuration = 60; 
-
 const fileManager = new GoogleAIFileManager(process.env.GEMINI_API_KEY!);
 
 
