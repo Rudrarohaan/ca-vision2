@@ -9,20 +9,9 @@ import {
   CardDescription,
 } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { BrainCircuit, MessageSquare, FileText, ArrowRight } from 'lucide-react';
+import { BrainCircuit, MessageSquare, ArrowRight } from 'lucide-react';
 import { useUser } from '@/firebase/auth/use-user';
-import { BarChart, PieChart } from 'recharts';
-import { ChartContainer, ChartTooltip, ChartTooltipContent } from '@/components/ui/chart';
-import { Bar, XAxis, YAxis, Pie, Cell } from 'recharts';
 
-
-const chartData = [
-  { subject: 'Accounting', correct: 8, total: 10 },
-  { subject: 'Law', correct: 6, total: 10 },
-  { subject: 'Tax', correct: 9, total: 10 },
-  { subject: 'Audit', correct: 5, total: 10 },
-  { subject: 'FM', correct: 7, total: 10 },
-];
 
 const overallAnalytics = {
   totalAttempted: 50,
@@ -30,7 +19,6 @@ const overallAnalytics = {
   mcqsGenerated: 5,
 };
 
-const COLORS = ['#0088FE', '#00C49F', '#FFBB28', '#FF8042', '#8884d8'];
 
 export default function DashboardPage() {
   const { user } = useUser();
@@ -85,7 +73,7 @@ export default function DashboardPage() {
         </Card>
       </div>
 
-      <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
+      <div className="grid gap-6">
         <Card>
           <CardHeader>
             <CardTitle>Overall Performance</CardTitle>
@@ -93,7 +81,7 @@ export default function DashboardPage() {
               A quick look at your MCQ stats.
             </CardDescription>
           </CardHeader>
-          <CardContent className="grid grid-cols-2 gap-4">
+          <CardContent className="grid grid-cols-1 sm:grid-cols-3 gap-4">
             <div className="flex flex-col items-center justify-center p-4 bg-secondary rounded-lg">
                 <p className="text-4xl font-bold text-primary">{overallAnalytics.totalAttempted}</p>
                 <p className="text-sm text-muted-foreground">Attempted</p>
@@ -102,28 +90,10 @@ export default function DashboardPage() {
                 <p className="text-4xl font-bold text-primary">{overallAnalytics.overallAccuracy}%</p>
                 <p className="text-sm text-muted-foreground">Accuracy</p>
             </div>
-            <div className="col-span-2 flex flex-col items-center justify-center p-4 bg-secondary rounded-lg">
+            <div className="flex flex-col items-center justify-center p-4 bg-secondary rounded-lg">
                 <p className="text-4xl font-bold text-primary">{overallAnalytics.mcqsGenerated}</p>
                 <p className="text-sm text-muted-foreground">Quizzes Generated</p>
             </div>
-          </CardContent>
-        </Card>
-        <Card className="lg:col-span-2">
-          <CardHeader>
-            <CardTitle>Subject-wise Accuracy</CardTitle>
-            <CardDescription>
-              Your accuracy across different subjects.
-            </CardDescription>
-          </CardHeader>
-          <CardContent className="h-[300px]">
-            <ChartContainer config={{}} className="w-full h-full">
-              <BarChart data={chartData} accessibilityLayer>
-                <XAxis dataKey="subject" tickLine={false} axisLine={false} tickMargin={8} />
-                <YAxis />
-                <ChartTooltip content={<ChartTooltipContent />} />
-                <Bar dataKey="correct" fill="hsl(var(--primary))" radius={4} />
-              </BarChart>
-            </ChartContainer>
           </CardContent>
         </Card>
       </div>
