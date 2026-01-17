@@ -109,7 +109,7 @@ const studyFlow = ai.defineFlow(
     const previousHistory = allMessages.slice(0, -1); // All items except last
 
     const { output } = await ai.generate({
-      model: googleAI.model('gemini-1.5-flash'),
+      model: googleAI.model('gemini-1.5-flash-001'),
       output: { schema: OutputSchema },
       tools: [getYoutubeTranscript],
       config: { temperature: 0.3 },
@@ -269,3 +269,5 @@ export async function updateQuizStatsAction({
     return { success: false, error: 'Failed to update quiz stats.' };
   }
 }
+
+    
