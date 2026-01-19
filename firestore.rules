@@ -1,55 +1,6 @@
-/**
- * This ruleset enforces a security model with two distinct zones: a private user-owned
- * data space and a public-read space for shared educational content.
- *
- * Core Philosophy:
- * The primary security goal is to strictly isolate each user's personal data while
- * allowing broad read access to shared learning materials. User-specific information,
- * such as profiles and uploaded files, is accessible only by the owning user.
- * Shared content, like multiple-choice questions (MCQs), is publicly readable by anyone.
- *
- * Data Structure:
- * - /users/{userId}: Each user has a root document containing their profile.
- * - /users/{userId}/uploadedFiles/{fileId}: A subcollection for a user's private files.
- *   This structure ensures that ownership is inherited from the path, simplifying rules.
- * - /mcqs_foundation, /mcqs_intermediate, /mcqs_final: Top-level collections for
- *   MCQs, segregated by exam level. This structural segregation allows for distinct
- *   security postures and efficient public queries.
- *
- * Key Security Decisions:
- * - Strict User Ownership: All documents and subcollections under `/users/{userId}` are
- *   aggressively protected. Only the authenticated user matching {userId} can perform
- *   any operation (read, write, delete) on their own data.
- * - No User Enumeration: Listing the entire `/users` collection is disallowed to
- *   protect user privacy and prevent scraping of user IDs.
- * - Public Read-Only Content: The MCQ collections are publicly readable by anyone,
- *   including unauthenticated users, to support the educational purpose of the app.
- * - Locked-Down Writes for Public Content: Writes to the public MCQ collections are
- *   currently disabled (`if false;`). To enable content creation (e.g., by admins or
- *   content creators), the 'MCQ' data model must be updated to include an ownership
- *   field (like 'creatorId'), which can then be used to authorize writes.
- * - Relational Integrity: On creation, documents within a user's data space (e.g.,
- *   UserProfile, UploadedFile) must contain an internal ID field that matches the
- *   user ID from the path, ensuring data consistency. This ID is immutable.
- */
 rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
-
-    // Helper functions for reusable logic
-    function isSignedIn() {
-      return request.auth != null;
-    }
-
-    // Checks if the requesting user's UID matches the document's owner ID
-    function isOwner(userId) {
-      return isSignedIn() && request.auth.uid == userId;
-    }
-
-    // Checks for ownership on an existing document, critical for safe updates/deletes
-    function isExistingOwner(userId) {
-      return isOwner(userId) && resource != null;
-    }
 
     /**
      * @description Controls access to a user's own profile document.
@@ -59,11 +10,13 @@ service cloud.firestore {
      * @principle Restricts access to a user's own data tree and prevents user enumeration.
      */
     match /users/{userId} {
-      allow get: if isOwner(userId);
-      allow list: if false; // Disallow listing all users to protect privacy
-      allow create: if isOwner(userId) && request.resource.data.id == userId;
-      allow update: if isOwner(userId);
-      allow delete: if isExistingOwner(userId);
+      // Users can only read, update, or delete their own profile document.
+      allow get, update, delete: if request.auth != null && request.auth.uid == userId;
+      allow list: if false; // Disallow listing all users to protect privacy.
+      
+      // Users can only create a profile document for themselves,
+      // and the document's ID must match their UID.
+      allow create: if request.auth != null && request.auth.uid == userId && request.resource.data.id == userId;
     }
 
     /**
@@ -74,11 +27,14 @@ service cloud.firestore {
      * @principle Enforces document ownership for a user's private subcollection.
      */
     match /users/{userId}/uploadedFiles/{fileId} {
-      allow get: if isOwner(userId);
-      allow list: if isOwner(userId);
-      allow create: if isOwner(userId) && request.resource.data.userId == userId;
-      allow update: if isExistingOwner(userId) && request.resource.data.userId == resource.data.userId;
-      allow delete: if isExistingOwner(userId);
+      // Only the user who owns the parent user document can access their uploaded files.
+      allow read, list, delete: if request.auth != null && request.auth.uid == userId;
+
+      // When creating a file, the internal 'userId' field must match the creator's UID.
+      allow create: if request.auth != null && request.auth.uid == userId && request.resource.data.userId == userId;
+
+      // When updating, the 'userId' field cannot be changed.
+      allow update: if request.auth != null && request.auth.uid == userId && request.resource.data.userId == resource.data.userId;
     }
 
     /**
@@ -89,12 +45,8 @@ service cloud.firestore {
      * @principle Provides public read access for shared content while securing writes.
      */
     match /mcqs_foundation/{mcqId} {
-      allow get: if true;
-      allow list: if true;
-      // CRITICAL: Cannot implement owner-only writes. The 'MCQ' entity is missing an 'ownerId' or 'creatorId' field.
-      allow create: if false; // TODO: Add owner validation once the schema is updated with an ownership field.
-      allow update: if false; // TODO: Add owner validation once the schema is updated with an ownership field.
-      allow delete: if false; // TODO: Add owner validation once the schema is updated with an ownership field.
+      allow read, list: if true;
+      allow write: if false; // Writes are disabled. Add auth logic for admins/creators.
     }
 
     /**
@@ -105,12 +57,8 @@ service cloud.firestore {
      * @principle Provides public read access for shared content while securing writes.
      */
     match /mcqs_intermediate/{mcqId} {
-      allow get: if true;
-      allow list: if true;
-      // CRITICAL: Cannot implement owner-only writes. The 'MCQ' entity is missing an 'ownerId' or 'creatorId' field.
-      allow create: if false; // TODO: Add owner validation once the schema is updated with an ownership field.
-      allow update: if false; // TODO: Add owner validation once the schema is updated with an ownership field.
-      allow delete: if false; // TODO: Add owner validation once the schema is updated with an ownership field.
+      allow read, list: if true;
+      allow write: if false; // Writes are disabled. Add auth logic for admins/creators.
     }
 
     /**
@@ -121,12 +69,8 @@ service cloud.firestore {
      * @principle Provides public read access for shared content while securing writes.
      */
     match /mcqs_final/{mcqId} {
-      allow get: if true;
-      allow list: if true;
-      // CRITICAL: Cannot implement owner-only writes. The 'MCQ' entity is missing an 'ownerId' or 'creatorId' field.
-      allow create: if false; // TODO: Add owner validation once the schema is updated with an ownership field.
-      allow update: if false; // TODO: Add owner validation once the schema is updated with an ownership field.
-      allow delete: if false; // TODO: Add owner validation once the schema is updated with an ownership field.
+      allow read, list: if true;
+      allow write: if false; // Writes are disabled. Add auth logic for admins/creators.
     }
   }
 }
