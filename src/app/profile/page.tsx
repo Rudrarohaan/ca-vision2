@@ -41,17 +41,33 @@ import type { UserProfile } from '@/lib/types';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { updateProfile } from 'firebase/auth';
 
+// Helper to get the last part of a URL path, which we assume is the username
+const getUsernameFromUrl = (url: string | undefined | null): string => {
+  if (!url) return '';
+  // If it's already a username (doesn't start with http), return it directly.
+  if (!url.startsWith('http')) return url;
+  try {
+    const path = new URL(url).pathname;
+    const parts = path.split('/').filter(p => p);
+    return parts[parts.length - 1] || '';
+  } catch (e) {
+    // If parsing fails, it's likely not a valid URL, so return the raw string.
+    return url;
+  }
+};
+
+
 const profileSchema = z.object({
   displayName: z.string().min(1, 'Name is required.'),
   email: z.string().email(),
   bio: z.string().max(160, 'Bio must be 160 characters or less.').optional(),
-  city: z.string().optional(),
+  icaiRegistrationNumber: z.string().optional(),
   caLevel: z.enum(['Foundation', 'Intermediate', 'Final']).optional(),
   photoURL: z.string().url().optional().or(z.literal('')),
   socialLinks: z.object({
-    twitter: z.string().url().optional().or(z.literal('')),
-    linkedin: z.string().url().optional().or(z.literal('')),
-    instagram: z.string().url().optional().or(z.literal('')),
+    twitter: z.string().optional(),
+    linkedin: z.string().optional(),
+    instagram: z.string().optional(),
   }).optional(),
 });
 
@@ -84,7 +100,7 @@ export default function ProfilePage() {
       displayName: '',
       email: '',
       bio: '',
-      city: '',
+      icaiRegistrationNumber: '',
       photoURL: '',
       socialLinks: {
         twitter: '',
@@ -95,24 +111,18 @@ export default function ProfilePage() {
   });
 
   useEffect(() => {
-    if (!isUserLoading && !user) {
-      router.push('/login');
-    }
-  }, [isUserLoading, user, router]);
-
-  useEffect(() => {
     if (userProfile) {
       form.reset({
         displayName: userProfile.displayName || user?.displayName || '',
         email: userProfile.email || user?.email || '',
         bio: userProfile.bio || '',
-        city: userProfile.city || '',
+        icaiRegistrationNumber: userProfile.icaiRegistrationNumber || '',
         caLevel: userProfile.caLevel,
         photoURL: userProfile.photoURL || user?.photoURL || '',
         socialLinks: {
-          twitter: userProfile.socialLinks?.twitter || '',
-          linkedin: userProfile.socialLinks?.linkedin || '',
-          instagram: userProfile.socialLinks?.instagram || '',
+          twitter: getUsernameFromUrl(userProfile.socialLinks?.twitter),
+          linkedin: getUsernameFromUrl(userProfile.socialLinks?.linkedin),
+          instagram: getUsernameFromUrl(userProfile.socialLinks?.instagram),
         },
       });
     } else if (user && !isProfileLoading) {
@@ -123,7 +133,7 @@ export default function ProfilePage() {
         email: user.email || '',
         photoURL: user.photoURL || '',
         bio: '',
-        city: '',
+        icaiRegistrationNumber: '',
         caLevel: undefined,
         socialLinks: {
           twitter: '',
@@ -140,8 +150,15 @@ export default function ProfilePage() {
 
     try {
       const userDoc = doc(firestore, 'users', user.uid);
+      const { socialLinks, ...restOfValues } = values;
+      
       const dataToSave = {
-        ...values,
+        ...restOfValues,
+        socialLinks: {
+            twitter: socialLinks?.twitter ? `https://x.com/${socialLinks.twitter.split('/').pop()}` : '',
+            linkedin: socialLinks?.linkedin ? `https://linkedin.com/in/${socialLinks.linkedin.split('/').pop()}` : '',
+            instagram: socialLinks?.instagram ? `https://instagram.com/${socialLinks.instagram.split('/').pop()}` : '',
+        },
         updatedAt: new Date().toISOString(),
       };
       
@@ -308,12 +325,12 @@ export default function ProfilePage() {
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                 <FormField
                     control={form.control}
-                    name="city"
+                    name="icaiRegistrationNumber"
                     render={({ field }) => (
                         <FormItem>
-                        <FormLabel>City</FormLabel>
+                        <FormLabel>ICAI Registration No.</FormLabel>
                         <FormControl>
-                            <Input placeholder="e.g., Mumbai" {...field} />
+                            <Input placeholder="e.g., NRO123456" {...field} />
                         </FormControl>
                         <FormMessage />
                         </FormItem>
@@ -353,7 +370,7 @@ export default function ProfilePage() {
                                 <FormControl>
                                       <div className="relative">
                                         <Twitter className="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-muted-foreground" />
-                                        <Input placeholder="https://x.com/username" {...field} className="pl-10" />
+                                        <Input placeholder="username" {...field} className="pl-10" />
                                     </div>
                                 </FormControl>
                                 <FormMessage />
@@ -368,7 +385,7 @@ export default function ProfilePage() {
                                 <FormControl>
                                     <div className="relative">
                                         <Linkedin className="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-muted-foreground" />
-                                        <Input placeholder="https://linkedin.com/in/username" {...field} className="pl-10" />
+                                        <Input placeholder="username" {...field} className="pl-10" />
                                     </div>
                                 </FormControl>
                                 <FormMessage />
@@ -383,7 +400,7 @@ export default function ProfilePage() {
                                 <FormControl>
                                     <div className="relative">
                                         <Instagram className="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-muted-foreground" />
-                                        <Input placeholder="https://instagram.com/username" {...field} className="pl-10" />
+                                        <Input placeholder="username" {...field} className="pl-10" />
                                     </div>
                                 </FormControl>
                                 <FormMessage />

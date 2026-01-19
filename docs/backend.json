@@ -15,9 +15,49 @@
           "description": "User's email address.",
           "format": "email"
         },
-        "name": {
+        "displayName": {
           "type": "string",
           "description": "User's full name."
+        },
+        "bio": {
+          "type": "string",
+          "description": "A short bio about the user."
+        },
+        "icaiRegistrationNumber": {
+          "type": "string",
+          "description": "User's ICAI (Institute of Chartered Accountants of India) registration number."
+        },
+        "caLevel": {
+          "type": "string",
+          "enum": [
+            "Foundation",
+            "Intermediate",
+            "Final"
+          ],
+          "description": "The user's current CA level."
+        },
+        "photoURL": {
+          "type": "string",
+          "format": "uri",
+          "description": "URL of the user's profile picture."
+        },
+        "socialLinks": {
+          "type": "object",
+          "description": "Links to the user's social media profiles.",
+          "properties": {
+            "twitter": {
+              "type": "string",
+              "format": "uri"
+            },
+            "linkedin": {
+              "type": "string",
+              "format": "uri"
+            },
+            "instagram": {
+              "type": "string",
+              "format": "uri"
+            }
+          }
         },
         "createdAt": {
           "type": "string",
@@ -45,7 +85,7 @@
       "required": [
         "id",
         "email",
-        "name",
+        "displayName",
         "createdAt",
         "updatedAt"
       ]
@@ -244,4 +284,3 @@
     "reasoning": "The Firestore structure is designed to store user profiles, uploaded files, and multiple-choice questions (MCQs) for a CA Exam Prep application. The design emphasizes authorization independence, clarity, and structural segregation to enable robust security rules and efficient data retrieval. User profiles are stored in a dedicated collection, with uploaded files and MCQs stored in subcollections, enforcing ownership and facilitating secure list operations. All data related to MCQs for different levels (Foundation, Intermediate, Final) are stored in separate collections to make security rules easier to manage and enforce.\n\n**Authorization Independence (CRITICAL):**\n\n*   UserProfile: User profiles are stored directly at `/users/{userId}`, allowing straightforward access control based on `request.auth.uid == userId`.\n*   UploadedFile: Uploaded files are stored within user-specific subcollections `/users/{userId}/uploadedFiles/{fileId}`, inheriting authorization context from the parent user profile. This ensures only the owning user can access these files.\n*   MCQ: MCQs are stored in separate collections, `/mcqs_foundation`, `/mcqs_intermediate`, and `/mcqs_final`. Authorization rules can be based on the absence of roles, assuming all users can access the MCQs, or can be extended to allow only specific roles or admins to create/modify them. The `uploadedFileId` property within the `MCQ` document links back to the file from which the question was potentially generated, providing a reference for tracing.\n\n**Structural Segregation (Homogeneous Security Posture):**\n\n*   User profiles are separated from uploaded files and MCQs, stored in their respective collections. This segregation allows distinct security rules for each data type, preventing unintended access.\n*   MCQs are further segregated by exam level (foundation, intermediate, final), facilitating distinct security rules tailored to each level.\n\n**QAPs (Rules are not Filters):**\n\n*   Path-based ownership for uploaded files (`/users/{userId}/uploadedFiles/{fileId}`) allows secure list operations, as rules can easily filter based on the user ID in the path.\n*   Segregation of MCQs by exam level supports secure list operations, as queries can be limited to a specific collection based on the level.\n\n**Invariants:**\n\n*   The `userId` field in `UploadedFile` maintains the invariant of ownership, as it must match the `userId` in the path. Timestamps (`createdAt`, `updatedAt`, `uploadDate`) are enforced through rules, ensuring data integrity.\n\nThis structure supports the required QAPs by using structural segregation and path-based ownership for uploaded files. The segregation of MCQs by exam level allows secure list operations, and the path-based ownership for uploaded files further simplifies secure data access and management."
   }
 }
-    

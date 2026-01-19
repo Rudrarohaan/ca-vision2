@@ -71,7 +71,7 @@ export const UserProfileSchema = z.object({
   email: z.string().email().optional().or(z.literal('')),
   displayName: z.string().optional(),
   bio: z.string().optional(),
-  city: z.string().optional(),
+  icaiRegistrationNumber: z.string().optional(),
   caLevel: z.enum(['Foundation', 'Intermediate', 'Final']).optional(),
   photoURL: z.string().url().optional().or(z.literal('')),
   socialLinks: z
