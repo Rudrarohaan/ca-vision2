@@ -7,6 +7,7 @@ import { Auth, User, onAuthStateChanged } from 'firebase/auth';
 import { FirebaseErrorListener } from '@/components/FirebaseErrorListener'
 import { FirebaseStorage } from 'firebase/storage';
 import type { UserProfile } from '@/lib/types';
+import { createUserProfileAction } from '@/app/actions';
 
 interface FirebaseProviderProps {
   children: ReactNode;
@@ -93,23 +94,16 @@ export const FirebaseProvider: React.FC<FirebaseProviderProps> = ({
           const userDoc = await getDoc(userDocRef);
 
           if (!userDoc.exists()) {
-            // New user, create profile.
+            // New user, create profile using the server action for consistency.
             const { uid, email, displayName, photoURL } = firebaseUser;
-            const newUserProfile: UserProfile = {
-              id: uid,
+            const result = await createUserProfileAction({
+              uid,
               email: email || '',
               displayName: displayName || email?.split('@')[0] || 'Anonymous User',
               photoURL: photoURL || '',
-              createdAt: new Date().toISOString(),
-              updatedAt: new Date().toISOString(),
-              quizzesGenerated: 0,
-              totalMcqsAttempted: 0,
-              totalMcqsCorrect: 0,
-            };
-            try {
-              await setDoc(userDocRef, newUserProfile);
-            } catch (error) {
-              console.error("FirebaseProvider: Error creating user profile:", error);
+            });
+            if (!result.success) {
+                console.error("FirebaseProvider: Error creating user profile via action:", result.error);
             }
           }
         }

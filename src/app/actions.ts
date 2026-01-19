@@ -118,10 +118,12 @@ export async function createUserProfileAction({
   uid,
   email,
   displayName,
+  photoURL,
 }: {
   uid: string;
   email: string;
   displayName: string;
+  photoURL?: string;
 }) {
   try {
     const { firestore } = initializeFirebase();
@@ -131,7 +133,7 @@ export async function createUserProfileAction({
       id: uid,
       email: email,
       displayName: displayName,
-      photoURL: '',
+      photoURL: photoURL || '',
       createdAt: new Date().toISOString(),
       updatedAt: new Date().toISOString(),
       quizzesGenerated: 0,
