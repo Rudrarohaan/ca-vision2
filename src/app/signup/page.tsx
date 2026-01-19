@@ -55,22 +55,18 @@ export default function SignupPage() {
   });
 
   useEffect(() => {
-    // When user object becomes available, update profile and redirect
+    // When user object becomes available after signup, update their Auth profile and redirect.
+    // The Dashboard page will handle creating the Firestore document.
     if (user && !isUserLoading && isSubmitting && !isProfileUpdating) {
       setIsProfileUpdating(true);
       const values = form.getValues();
       
-      // 1. Update the Auth user profile first (client-side)
       updateProfile(user, { displayName: values.displayName })
-        .then(() => {
-          // 2. Create the Firestore document (server-side)
-          createUserProfileAction({
-            uid: user.uid,
-            email: user.email!, // user.email will be present after signup
-            displayName: values.displayName
-          }).then(() => {
+        .catch((error) => {
+            console.error("Error updating profile display name:", error);
+        })
+        .finally(() => {
             router.push('/');
-          });
         });
 
     } else if (user && !isUserLoading && !isSubmitting) {

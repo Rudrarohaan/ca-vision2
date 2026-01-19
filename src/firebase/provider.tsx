@@ -76,11 +76,8 @@ export const FirebaseProvider: React.FC<FirebaseProviderProps> = ({
 
   // Effect to subscribe to Firebase auth state changes
   useEffect(() => {
-    if (!auth || !firestore) {
-      const errorParts = [];
-      if (!auth) errorParts.push("Auth service not provided.");
-      if (!firestore) errorParts.push("Firestore service not provided.");
-      setUserAuthState({ user: null, isUserLoading: false, userError: new Error(errorParts.join(' ')) });
+    if (!auth) {
+      setUserAuthState({ user: null, isUserLoading: false, userError: new Error("Auth service not provided.") });
       return;
     }
 
@@ -88,25 +85,7 @@ export const FirebaseProvider: React.FC<FirebaseProviderProps> = ({
 
     const unsubscribe = onAuthStateChanged(
       auth,
-      async (firebaseUser) => { // Auth state determined
-        if (firebaseUser) {
-          const userDocRef = doc(firestore, 'users', firebaseUser.uid);
-          const userDoc = await getDoc(userDocRef);
-
-          if (!userDoc.exists()) {
-            // New user, create profile using the server action for consistency.
-            const { uid, email, displayName, photoURL } = firebaseUser;
-            const result = await createUserProfileAction({
-              uid,
-              email: email || '',
-              displayName: displayName || email?.split('@')[0] || 'Anonymous User',
-              photoURL: photoURL || '',
-            });
-            if (!result.success) {
-                console.error("FirebaseProvider: Error creating user profile via action:", result.error);
-            }
-          }
-        }
+      (firebaseUser) => { // Auth state determined
         setUserAuthState({ user: firebaseUser, isUserLoading: false, userError: null });
       },
       (error) => { // Auth listener error

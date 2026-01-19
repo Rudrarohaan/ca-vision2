@@ -14,8 +14,9 @@ import { useUser } from '@/firebase/auth/use-user';
 import { useFirestore, useDoc, useMemoFirebase } from '@/firebase';
 import { doc } from 'firebase/firestore';
 import type { UserProfile } from '@/lib/types';
-import { useMemo } from 'react';
+import { useEffect, useMemo } from 'react';
 import { Skeleton } from '@/components/ui/skeleton';
+import { createUserProfileAction } from '@/app/actions';
 
 
 export default function DashboardPage() {
@@ -28,6 +29,24 @@ export default function DashboardPage() {
   );
   
   const { data: userProfile, isLoading: isProfileLoading } = useDoc<UserProfile>(userDocRef);
+
+  useEffect(() => {
+    // If the user is logged in, but we're not loading a profile and no profile exists, create one.
+    if (user && !isProfileLoading && !userProfile) {
+      createUserProfileAction({
+        uid: user.uid,
+        email: user.email || '',
+        displayName: user.displayName || user.email?.split('@')[0] || 'Anonymous User',
+        photoURL: user.photoURL || '',
+      }).then(result => {
+        if (!result.success) {
+          console.error("DashboardPage: Failed to create user profile:", result.error);
+        }
+        // The useDoc hook will automatically update with the new profile data.
+      });
+    }
+  }, [user, userProfile, isProfileLoading]);
+
 
   const overallAnalytics = useMemo(() => {
     if (!userProfile) {
@@ -57,7 +76,7 @@ export default function DashboardPage() {
     <div className="flex-1 space-y-8 p-4 md:p-8 pt-6">
       <div className="flex items-center justify-between space-y-2">
         <h1 className="font-headline text-4xl font-bold tracking-tight">
-          Welcome back, {user?.displayName?.split(' ')[0] || 'CA Aspirant'}!
+          Welcome back, {userProfile?.displayName?.split(' ')[0] || user?.displayName?.split(' ')[0] || 'CA Aspirant'}!
         </h1>
       </div>
 
@@ -140,5 +159,3 @@ export default function DashboardPage() {
     </div>
   );
 }
-
-    
