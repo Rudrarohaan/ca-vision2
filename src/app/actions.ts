@@ -114,6 +114,41 @@ export async function getInstantStudyAssistance(input: GetInstantStudyAssistance
 
 // --- USER PROFILE & STATS ACTIONS ---
 
+export async function createUserProfileAction({
+  uid,
+  email,
+  displayName,
+}: {
+  uid: string;
+  email: string;
+  displayName: string;
+}) {
+  try {
+    const { firestore } = initializeFirebase();
+    const userDocRef = doc(firestore, 'users', uid);
+
+    const newUserProfile: UserProfile = {
+      id: uid,
+      email: email,
+      displayName: displayName,
+      photoURL: '',
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString(),
+      quizzesGenerated: 0,
+      totalMcqsAttempted: 0,
+      totalMcqsCorrect: 0,
+    };
+    
+    await setDocServer(userDocRef, newUserProfile, {});
+    return { success: true };
+
+  } catch (error) {
+    console.error('Error creating user profile:', error);
+    const errorMessage = error instanceof Error ? error.message : 'An unknown error occurred.';
+    return { success: false, error: errorMessage };
+  }
+}
+
 export async function updateUserProfileAction(
   { uid, data }: { uid: string; data: Partial<Omit<UserProfile, 'id' | 'email' | 'createdAt'>> }
 ) {

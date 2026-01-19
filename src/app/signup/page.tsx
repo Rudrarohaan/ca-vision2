@@ -29,7 +29,8 @@ import { useAuth } from '@/firebase';
 import { useRouter } from 'next/navigation';
 import { useUser } from '@/firebase/auth/use-user';
 import { useEffect, useState } from 'react';
-import { updateUserProfileAction } from '../actions';
+import { createUserProfileAction } from '../actions';
+import { updateProfile } from 'firebase/auth';
 
 const signupSchema = z.object({
   displayName: z.string().min(2, 'Name must be at least 2 characters.'),
@@ -58,12 +59,20 @@ export default function SignupPage() {
     if (user && !isUserLoading && isSubmitting && !isProfileUpdating) {
       setIsProfileUpdating(true);
       const values = form.getValues();
-      updateUserProfileAction({ 
-        uid: user.uid, 
-        data: { displayName: values.displayName } // Pass only displayName
-      }).then(() => {
-        router.push('/');
-      });
+      
+      // 1. Update the Auth user profile first (client-side)
+      updateProfile(user, { displayName: values.displayName })
+        .then(() => {
+          // 2. Create the Firestore document (server-side)
+          createUserProfileAction({
+            uid: user.uid,
+            email: user.email!, // user.email will be present after signup
+            displayName: values.displayName
+          }).then(() => {
+            router.push('/');
+          });
+        });
+
     } else if (user && !isUserLoading && !isSubmitting) {
       // If user is already logged in and not in the process of signing up, redirect
       router.push('/');
