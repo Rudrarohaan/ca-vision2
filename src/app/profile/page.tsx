@@ -124,6 +124,7 @@ export default function ProfilePage() {
         photoURL: user.photoURL || '',
         bio: '',
         city: '',
+        caLevel: undefined,
         socialLinks: {
           twitter: '',
           linkedin: '',
@@ -352,7 +353,7 @@ export default function ProfilePage() {
                                 <FormControl>
                                       <div className="relative">
                                         <Twitter className="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-muted-foreground" />
-                                        <Input placeholder="https://x.com/username" {...field} />
+                                        <Input placeholder="https://x.com/username" {...field} className="pl-10" />
                                     </div>
                                 </FormControl>
                                 <FormMessage />
@@ -367,7 +368,7 @@ export default function ProfilePage() {
                                 <FormControl>
                                     <div className="relative">
                                         <Linkedin className="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-muted-foreground" />
-                                        <Input placeholder="https://linkedin.com/in/username" {...field} />
+                                        <Input placeholder="https://linkedin.com/in/username" {...field} className="pl-10" />
                                     </div>
                                 </FormControl>
                                 <FormMessage />
@@ -382,7 +383,7 @@ export default function ProfilePage() {
                                 <FormControl>
                                     <div className="relative">
                                         <Instagram className="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-muted-foreground" />
-                                        <Input placeholder="https://instagram.com/username" {...field} />
+                                        <Input placeholder="https://instagram.com/username" {...field} className="pl-10" />
                                     </div>
                                 </FormControl>
                                 <FormMessage />
