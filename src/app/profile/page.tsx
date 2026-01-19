@@ -23,7 +23,6 @@ import {
   FormMessage,
 } from '@/components/ui/form';
 import { useEffect, useState, useRef } from 'react';
-import { updateUserProfileAction } from '@/app/actions';
 import { useToast } from '@/hooks/use-toast';
 import { useRouter } from 'next/navigation';
 import { Loader2, Linkedin, Twitter, Instagram, Upload } from 'lucide-react';
@@ -35,12 +34,12 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
-import { useFirestore, useDoc, useMemoFirebase } from '@/firebase';
+import { useFirestore, useDoc, useMemoFirebase, useAuth, useStorage } from '@/firebase';
 import { getStorage, ref, uploadBytes, getDownloadURL } from 'firebase/storage';
-import { doc } from 'firebase/firestore';
+import { doc, setDoc } from 'firebase/firestore';
 import type { UserProfile } from '@/lib/types';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
-import { initializeFirebase } from '@/firebase/server-init';
+import { updateProfile } from 'firebase/auth';
 
 const profileSchema = z.object({
   displayName: z.string().min(1, 'Name is required.'),
@@ -68,7 +67,9 @@ export default function ProfilePage() {
   const [isUploading, setIsUploading] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
-  const { firestore, storage } = initializeFirebase();
+  const firestore = useFirestore();
+  const auth = useAuth();
+  const storage = useStorage();
 
   const userDocRef = useMemoFirebase(
     () => (user ? doc(firestore, 'users', user.uid) : null),
@@ -133,23 +134,39 @@ export default function ProfilePage() {
   }, [user, userProfile, isProfileLoading, form]);
   
   async function onSubmit(values: z.infer<typeof updatableProfileSchema>) {
-    if (!user) return;
+    if (!user || !auth.currentUser) return;
     setIsSubmitting(true);
 
-    const result = await updateUserProfileAction({ uid: user.uid, data: values });
-    setIsSubmitting(false);
+    try {
+      const userDoc = doc(firestore, 'users', user.uid);
+      const dataToSave = {
+        ...values,
+        updatedAt: new Date().toISOString(),
+      };
+      
+      // Update Firestore document
+      await setDoc(userDoc, dataToSave, { merge: true });
 
-    if (result.success) {
+      // Update Firebase Auth profile
+      await updateProfile(auth.currentUser, {
+        displayName: values.displayName,
+        photoURL: values.photoURL
+      });
+
       toast({
         title: 'Profile Updated',
         description: 'Your profile has been updated successfully.',
       });
-    } else {
-      toast({
-        title: 'Error',
-        description: result.error,
-        variant: 'destructive',
-      });
+
+    } catch (error: any) {
+        console.error("Error updating profile:", error);
+        toast({
+            variant: "destructive",
+            title: "Update Failed",
+            description: error.message || "Could not update your profile.",
+        });
+    } finally {
+        setIsSubmitting(false);
     }
   }
 
