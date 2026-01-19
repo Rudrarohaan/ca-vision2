@@ -101,6 +101,7 @@ export default function ProfilePage() {
       email: '',
       bio: '',
       icaiRegistrationNumber: '',
+      caLevel: undefined,
       photoURL: '',
       socialLinks: {
         twitter: '',
@@ -111,6 +112,7 @@ export default function ProfilePage() {
   });
 
   useEffect(() => {
+    // Only reset the form once we have definitive data.
     if (userProfile) {
       form.reset({
         displayName: userProfile.displayName || user?.displayName || '',
@@ -125,9 +127,8 @@ export default function ProfilePage() {
           instagram: getUsernameFromUrl(userProfile.socialLinks?.instagram),
         },
       });
-    } else if (user && !isProfileLoading) {
-      // When we only have the auth user, reset the full form shape
-      // to avoid fields becoming uncontrolled.
+    } else if (user && !isProfileLoading && !userProfile) {
+      // This case handles a logged-in user who doesn't have a profile doc yet.
       form.reset({
         displayName: user.displayName || '',
         email: user.email || '',
@@ -155,9 +156,9 @@ export default function ProfilePage() {
       const dataToSave = {
         ...restOfValues,
         socialLinks: {
-            twitter: socialLinks?.twitter ? `https://x.com/${socialLinks.twitter.split('/').pop()}` : '',
+            twitter: socialLinks?.twitter ? `https://x.com/${socialLinks.twitter.replace('@', '').split('/').pop()}` : '',
             linkedin: socialLinks?.linkedin ? `https://linkedin.com/in/${socialLinks.linkedin.split('/').pop()}` : '',
-            instagram: socialLinks?.instagram ? `https://instagram.com/${socialLinks.instagram.split('/').pop()}` : '',
+            instagram: socialLinks?.instagram ? `https://instagram.com/${socialLinks.instagram.replace('@', '').split('/').pop()}` : '',
         },
         updatedAt: new Date().toISOString(),
       };
