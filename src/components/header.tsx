@@ -16,13 +16,26 @@ import {
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { getAuth, signOut } from 'firebase/auth';
 import { useRouter } from 'next/navigation';
+import { useDoc, useFirestore, useMemoFirebase } from '@/firebase';
+import { doc } from 'firebase/firestore';
+import type { UserProfile } from '@/lib/types';
 
 function UserNav() {
-  const { user, isUserLoading } = useUser();
+  const { user, isUserLoading: isAuthLoading } = useUser();
   const auth = getAuth();
   const router = useRouter();
+  const firestore = useFirestore();
 
-  if (isUserLoading) {
+  const userDocRef = useMemoFirebase(
+    () => (user ? doc(firestore, 'users', user.uid) : null),
+    [firestore, user]
+  );
+  
+  const { data: userProfile, isLoading: isProfileLoading } = useDoc<UserProfile>(userDocRef);
+
+  const isLoading = isAuthLoading || (!!user && isProfileLoading);
+
+  if (isLoading) {
     return <div className="h-8 w-8 rounded-full bg-muted animate-pulse" />;
   }
 
@@ -39,13 +52,19 @@ function UserNav() {
     );
   }
 
+  const displayName = userProfile?.displayName || user.displayName;
+  const photoURL = userProfile?.photoURL || user.photoURL;
+
   const getInitials = (name?: string | null) => {
     if (!name) return 'U';
     const names = name.split(' ');
-    if (names.length > 1) {
-      return `${names[0][0]}${names[names.length - 1][0]}`;
+    if (names.length > 1 && names[names.length - 1]) {
+      return `${names[0][0]}${names[names.length - 1][0]}`.toUpperCase();
     }
-    return name[0];
+    if (name.length > 0) {
+        return name[0].toUpperCase();
+    }
+    return 'U';
   };
   
   const handleSignOut = async () => {
@@ -58,8 +77,8 @@ function UserNav() {
       <DropdownMenuTrigger asChild>
         <Button variant="ghost" className="relative h-8 w-8 rounded-full">
           <Avatar className="h-8 w-8">
-            <AvatarImage src={user.photoURL || undefined} alt={user.displayName || 'User'} />
-            <AvatarFallback>{getInitials(user.displayName)}</AvatarFallback>
+            <AvatarImage src={photoURL || undefined} alt={displayName || 'User'} />
+            <AvatarFallback>{getInitials(displayName)}</AvatarFallback>
           </Avatar>
         </Button>
       </DropdownMenuTrigger>
@@ -67,7 +86,7 @@ function UserNav() {
         <DropdownMenuLabel className="font-normal">
           <div className="flex flex-col space-y-1">
             <p className="text-sm font-medium leading-none">
-              {user.displayName || 'User'}
+              {displayName || 'User'}
             </p>
             <p className="text-xs leading-none text-muted-foreground">
               {user.email || 'No email'}
