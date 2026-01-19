@@ -4,7 +4,7 @@ import { useState } from 'react';
 import type {
   GenerateMcqsFromSyllabusOutput,
   MCQ,
-} from '@/ai/flows/generate-mcqs-from-syllabus';
+} from '@/lib/types';
 import { McqCard } from './mcq-card';
 import { Button } from './ui/button';
 import {
@@ -19,8 +19,9 @@ import { ArrowLeft, ArrowRight } from 'lucide-react';
 import { Progress } from './ui/progress';
 import { useRouter } from 'next/navigation';
 import { useUser } from '@/firebase/auth/use-user';
-import { updateQuizStatsAction } from '@/app/actions';
-
+import { useFirestore } from '@/firebase';
+import { doc, updateDoc, increment } from 'firebase/firestore';
+import { useToast } from '@/hooks/use-toast';
 
 type McqListProps = {
   mcqs: GenerateMcqsFromSyllabusOutput;
@@ -35,6 +36,8 @@ export function McqList({ mcqs: initialMcqs, onReset }: McqListProps) {
   const [quizFinished, setQuizFinished] = useState(false);
   const router = useRouter();
   const { user } = useUser();
+  const firestore = useFirestore();
+  const { toast } = useToast();
 
   const handleOptionSelect = (option: string) => {
     const newMcqs = [...mcqs];
@@ -58,13 +61,20 @@ export function McqList({ mcqs: initialMcqs, onReset }: McqListProps) {
     return mcq.userAnswer === mcq.correctAnswer ? acc + 1 : acc;
   }, 0);
 
-  const handleSubmit = async () => {
-    // Persist aggregated stats to Firestore
-    if (user) {
-      await updateQuizStatsAction({
-        userId: user.uid,
-        score,
-        totalQuestions: mcqs.length,
+  const handleSubmit = () => {
+    // Persist aggregated stats to Firestore client-side
+    if (user && firestore) {
+      const userDocRef = doc(firestore, 'users', user.uid);
+      updateDoc(userDocRef, {
+        totalMcqsAttempted: increment(mcqs.length),
+        totalMcqsCorrect: increment(score),
+      }).catch(error => {
+        console.error('Error updating quiz stats:', error);
+        toast({
+          variant: 'destructive',
+          title: 'Update Failed',
+          description: 'Could not save your quiz performance.',
+        });
       });
     }
 
@@ -157,5 +167,3 @@ export function McqList({ mcqs: initialMcqs, onReset }: McqListProps) {
     </div>
   );
 }
-
-    

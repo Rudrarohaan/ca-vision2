@@ -6,7 +6,7 @@ import type { GenerateMcqsFromSyllabusInput, GenerateMcqsFromUploadedMaterialInp
 import { updateProfile } from 'firebase/auth';
 import { doc } from 'firebase/firestore';
 import { initializeFirebase } from '@/firebase/server-init';
-import { setDocServer, updateDocServer, incrementServer } from '@/firebase/server-actions';
+import { setDocServer } from '@/firebase/server-actions';
 import {
   generateMcqsFromSyllabus,
 } from '@/ai/flows/generate-mcqs-from-syllabus';
@@ -201,42 +201,5 @@ export async function updateUserProfileAction(
     console.error('Error updating user profile:', error);
     const errorMessage = error instanceof Error ? error.message : 'An unknown error occurred.';
     return { success: false, error: errorMessage };
-  }
-}
-
-export async function incrementQuizzesGeneratedAction({ userId }: { userId: string }) {
-  try {
-    const { firestore } = initializeFirebase();
-    const userDocRef = doc(firestore, 'users', userId);
-    await updateDocServer(userDocRef, {
-      quizzesGenerated: incrementServer(1),
-    });
-    return { success: true };
-  } catch (error) {
-    console.error('Error incrementing quizzes generated:', error);
-    return { success: false, error: 'Failed to update quiz count.' };
-  }
-}
-
-export async function updateQuizStatsAction({
-  userId,
-  score,
-  totalQuestions,
-}: {
-  userId: string;
-  score: number;
-  totalQuestions: number;
-}) {
-  try {
-    const { firestore } = initializeFirebase();
-    const userDocRef = doc(firestore, 'users', userId);
-    await updateDocServer(userDocRef, {
-      totalMcqsAttempted: incrementServer(totalQuestions),
-      totalMcqsCorrect: incrementServer(score),
-    });
-    return { success: true };
-  } catch (error) {
-    console.error('Error updating quiz stats:', error);
-    return { success: false, error: 'Failed to update quiz stats.' };
   }
 }

@@ -15,13 +15,15 @@ import { McqList } from './mcq-list';
 import type { GenerateMcqsFromSyllabusOutput } from '@/lib/types';
 import { Loader2 } from 'lucide-react';
 import { useUser } from '@/firebase/auth/use-user';
-import { incrementQuizzesGeneratedAction } from '@/app/actions';
+import { useFirestore } from '@/firebase';
+import { doc, updateDoc, increment } from 'firebase/firestore';
 
 export function McqGenerator() {
   const [mcqs, setMcqs] = useState<GenerateMcqsFromSyllabusOutput | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const { user } = useUser();
+  const firestore = useFirestore();
 
   const handleReset = () => {
     setMcqs(null);
@@ -31,8 +33,14 @@ export function McqGenerator() {
   const onMcqsGenerated = (newMcqs: GenerateMcqsFromSyllabusOutput | null) => {
     if (newMcqs && newMcqs.length > 0) {
       setMcqs(newMcqs);
-      if (user) {
-        incrementQuizzesGeneratedAction({ userId: user.uid });
+      if (user && firestore) {
+        const userDocRef = doc(firestore, 'users', user.uid);
+        updateDoc(userDocRef, {
+            quizzesGenerated: increment(1)
+        }).catch(err => {
+            console.error("Failed to increment quizzes generated count", err);
+            // Non-critical update, so no toast.
+        });
       }
     } else {
       // This case handles generation failure or empty results
