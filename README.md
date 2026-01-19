@@ -1,4 +1,4 @@
-# CA Exam Prep Platform
+# CA Vision 2.0
 
 This is a Next.js application built with Firebase and Genkit for CA (Chartered Accountancy) exam preparation. It leverages AI to provide students with powerful study tools.
 

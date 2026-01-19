@@ -2,7 +2,7 @@
 
 import Link from 'next/link';
 import { Button } from '@/components/ui/button';
-import { BrainCircuit, LogOut, User as UserIcon } from 'lucide-react';
+import { Eye, LogOut, User as UserIcon } from 'lucide-react';
 import { MainNav } from './main-nav';
 import { useUser } from '@/firebase/auth/use-user';
 import {
@@ -117,10 +117,10 @@ export function Header() {
       <div className="container flex h-16 items-center justify-between">
         <Link href="/" className="flex items-center gap-3 mr-8">
           <div className="flex h-10 w-10 items-center justify-center rounded-full bg-primary/10 glow-soft">
-            <BrainCircuit className="h-6 w-6 text-primary" />
+            <Eye className="h-6 w-6 text-primary" />
           </div>
           <span className="font-headline text-xl font-bold tracking-tight">
-            CA Exam Prep
+            CA Vision 2.0
           </span>
         </Link>
         <MainNav />

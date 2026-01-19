@@ -10,7 +10,7 @@ import {
 } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
-import { BrainCircuit, Lock, Mail, User as UserIcon, Loader2 } from 'lucide-react';
+import { Eye, Lock, Mail, User as UserIcon, Loader2 } from 'lucide-react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
@@ -98,11 +98,11 @@ export default function SignupPage() {
       <Card className="w-full max-w-md shadow-2xl shadow-primary/10">
         <CardHeader className="text-center">
           <div className="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-full bg-primary/10 glow-soft">
-            <BrainCircuit className="h-8 w-8 text-primary" />
+            <Eye className="h-8 w-8 text-primary" />
           </div>
           <CardTitle className="font-headline text-3xl">Create an Account</CardTitle>
           <CardDescription>
-            Join CA Exam Prep to start your journey.
+            Join CA Vision 2.0 to start your journey.
           </CardDescription>
         </CardHeader>
         <CardContent>

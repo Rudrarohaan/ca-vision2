@@ -17,7 +17,7 @@ const fontHeadline = Space_Grotesk({
 });
 
 export const metadata: Metadata = {
-  title: 'CA Exam Prep',
+  title: 'CA Vision 2.0',
   description: 'Generate MCQs for CA exams using AI',
 };
 
