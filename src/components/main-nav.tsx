@@ -9,10 +9,6 @@ export function MainNav() {
 
   const routes = [
     {
-      href: '/',
-      label: 'Dashboard',
-    },
-    {
       href: '/mcq-generator',
       label: 'MCQ Generator',
     },
