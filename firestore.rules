@@ -8,7 +8,8 @@ service cloud.firestore {
     // Rule for individual user documents.
     match /users/{userId} {
       // Allow a user to get, create, update, and delete their own document.
-      allow get, create, update, delete: if request.auth.uid == userId;
+      // Added explicit null check for request.auth for maximum clarity.
+      allow get, create, update, delete: if request.auth != null && request.auth.uid == userId;
       
       // Explicitly deny list access to the entire /users collection for security.
       allow list: if false;
@@ -17,7 +18,7 @@ service cloud.firestore {
     // Rule for files uploaded by a user.
     match /users/{userId}/uploadedFiles/{fileId} {
       // Allow a user to perform any action on files within their own folder.
-      allow read, write: if request.auth.uid == userId;
+      allow read, write: if request.auth != null && request.auth.uid == userId;
     }
 
 
