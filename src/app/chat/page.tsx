@@ -46,31 +46,33 @@ export default function ChatPage() {
     };
     setMessages(prev => [...prev, userMessage]);
     
-    try {
-      const response = await getInstantStudyAssistance({ question: text });
-      
-      const modelMessage: Message = {
-        id: (Date.now() + 1).toString(),
-        role: 'model',
-        content: response.answer,
-      };
-      setMessages(prev => [...prev, modelMessage]);
+    const response = await getInstantStudyAssistance({ question: text });
 
-    } catch (error) {
-      console.error(error);
-      const messageContent = error instanceof Error 
-        ? `An error occurred: ${error.message}` 
-        : 'Sorry, something went wrong. Please try again.';
-
+    if (response.error) {
+      console.error(response.error);
       const errorMessage: Message = {
         id: (Date.now() + 1).toString(),
         role: 'model',
-        content: messageContent,
+        content: `An error occurred: ${response.error}`,
       };
       setMessages(prev => [...prev, errorMessage]);
-    } finally {
-      setIsLoading(false);
+    } else if (response.data) {
+      const modelMessage: Message = {
+        id: (Date.now() + 1).toString(),
+        role: 'model',
+        content: response.data.answer,
+      };
+      setMessages(prev => [...prev, modelMessage]);
+    } else {
+       const errorMessage: Message = {
+        id: (Date.now() + 1).toString(),
+        role: 'model',
+        content: 'Sorry, something went wrong. Please try again.',
+      };
+      setMessages(prev => [...prev, errorMessage]);
     }
+
+    setIsLoading(false);
   };
 
   return (

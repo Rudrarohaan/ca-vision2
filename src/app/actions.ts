@@ -16,7 +16,6 @@ import {
 
 // Helper function to handle AI errors
 const handleAiError = (error: unknown): Error => {
-  console.error('AI Action Error:', error);
   const errorMessage = error instanceof Error ? error.message : 'An unknown error occurred';
   
   if (errorMessage.includes('overloaded') || errorMessage.includes('503')) {
@@ -36,11 +35,12 @@ export async function generateMcqsFromSyllabusAction(
       seed: Math.random(),
     });
     if (!mcqs || mcqs.length === 0) {
-      throw new Error('No MCQs were generated. The model may have returned an empty or invalid response.');
+      return { data: null, error: 'No MCQs were generated. The model may have returned an empty or invalid response.' };
     }
-    return mcqs;
+    return { data: mcqs, error: null };
   } catch (error) {
-    throw handleAiError(error);
+    const err = handleAiError(error);
+    return { data: null, error: err.message };
   }
 }
 
@@ -59,11 +59,12 @@ export async function generateMcqsFromUploadedMaterialAction(
       seed: Math.random(),
     });
     if (!mcqs || mcqs.length === 0) {
-      throw new Error('No MCQs were generated from the uploaded file. The model may have returned an empty or invalid response.');
+      return { data: null, error: 'No MCQs were generated from the uploaded file. The model may have returned an empty or invalid response.' };
     }
-    return mcqs;
+    return { data: mcqs, error: null };
   } catch (error) {
-    throw handleAiError(error);
+    const err = handleAiError(error);
+    return { data: null, error: err.message };
   }
 }
 
@@ -112,17 +113,18 @@ const getInstantStudyAssistanceFlow = ai.defineFlow(
   }
 );
 
-export async function getInstantStudyAssistance(input: GetInstantStudyAssistanceInput): Promise<GetInstantStudyAssistanceOutput> {
+export async function getInstantStudyAssistance(input: GetInstantStudyAssistanceInput) {
     try {
         const result = await getInstantStudyAssistanceFlow(input);
         const validation = GetInstantStudyAssistanceOutputSchema.safeParse(result);
         if (!validation.success) {
             console.error("AI response validation failed:", validation.error);
-            throw new Error("The AI model failed to return a response that matched the required format. Please try again.");
+            return { data: null, error: "The AI model failed to return a response that matched the required format. Please try again." };
         }
-        return validation.data;
+        return { data: validation.data, error: null };
     } catch(error) {
-        throw handleAiError(error);
+        const err = handleAiError(error);
+        return { data: null, error: err.message };
     }
 }
 

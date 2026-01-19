@@ -85,17 +85,12 @@ export function UploadForm({ onMcqsGenerated, setLoading, setError }: UploadForm
   async function onSubmit(values: z.infer<typeof formSchema>) {
     setLoading(true);
     setError(null);
-    try {
-      const fileDataUri = await fileToDataUri(values.file);
-      const result = await generateMcqsFromUploadedMaterialAction({ ...values, fileDataUri });
-      if (result && result.length > 0) {
-        onMcqsGenerated(result);
-      } else {
-        throw new Error('No MCQs were generated. Please try again.');
-      }
-    } catch (error) {
-      console.error(error);
-      const errorMessage = error instanceof Error ? error.message : 'An unknown error occurred.';
+    
+    const fileDataUri = await fileToDataUri(values.file);
+    const result = await generateMcqsFromUploadedMaterialAction({ ...values, fileDataUri });
+
+    if (result.error) {
+      const errorMessage = result.error;
       setError(errorMessage);
       onMcqsGenerated(null);
       toast({
@@ -103,9 +98,20 @@ export function UploadForm({ onMcqsGenerated, setLoading, setError }: UploadForm
         description: errorMessage,
         variant: 'destructive',
       });
-    } finally {
-      setLoading(false);
+    } else if (result.data && result.data.length > 0) {
+      onMcqsGenerated(result.data);
+    } else {
+      const errorMessage = 'No MCQs were generated. Please try again.';
+      setError(errorMessage);
+      onMcqsGenerated(null);
+      toast({
+        title: 'Error Generating MCQs',
+        description: errorMessage,
+        variant: 'destructive',
+      });
     }
+
+    setLoading(false);
   }
 
   return (

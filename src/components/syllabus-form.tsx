@@ -89,16 +89,11 @@ export function SyllabusForm({ onMcqsGenerated, setLoading, setError }: Syllabus
   async function onSubmit(values: z.infer<typeof formSchema>) {
     setLoading(true);
     setError(null);
-    try {
-      const result = await generateMcqsFromSyllabusAction(values);
-      if (result && result.length > 0) {
-        onMcqsGenerated(result);
-      } else {
-        throw new Error('No MCQs were generated. Please try again.');
-      }
-    } catch (error) {
-      console.error(error);
-      const errorMessage = error instanceof Error ? error.message : 'An unknown error occurred.';
+    
+    const result = await generateMcqsFromSyllabusAction(values);
+
+    if (result.error) {
+      const errorMessage = result.error;
       setError(errorMessage);
       onMcqsGenerated(null);
       toast({
@@ -106,9 +101,20 @@ export function SyllabusForm({ onMcqsGenerated, setLoading, setError }: Syllabus
         description: errorMessage,
         variant: 'destructive',
       });
-    } finally {
-      setLoading(false);
+    } else if (result.data && result.data.length > 0) {
+      onMcqsGenerated(result.data);
+    } else {
+      const errorMessage = 'No MCQs were generated. Please try again.';
+      setError(errorMessage);
+      onMcqsGenerated(null);
+      toast({
+        title: 'Error Generating MCQs',
+        description: errorMessage,
+        variant: 'destructive',
+      });
     }
+
+    setLoading(false);
   }
 
   return (
