@@ -49,7 +49,6 @@ export default function ChatPage() {
     const response = await getInstantStudyAssistance({ question: text });
 
     if (response.error) {
-      console.error(response.error);
       const errorMessage: Message = {
         id: (Date.now() + 1).toString(),
         role: 'model',
