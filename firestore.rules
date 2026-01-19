@@ -3,51 +3,39 @@ rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
 
-    /**
-     * @description Secures a user's entire data tree, including their profile and any subcollections.
-     * @path /users/{userId} and /users/{userId}/{subcollection}/{documentId}
-     * @allow (read, write) An authenticated user accessing or modifying any document within their own data tree.
-     * @deny (list on /users) Listing the top-level 'users' collection is not granted by this rule, preventing user enumeration.
-     * @principle Enforces strict data ownership for a user's entire document hierarchy.
-     */
-    match /users/{userId}/{documents=**} {
+    // --- USER DATA ---
+
+    // This rule allows an authenticated user to read and write THEIR OWN user document.
+    // The path `/users/{userId}` is matched, and the condition checks if the requester's UID
+    // is the same as the `userId` in the path.
+    match /users/{userId} {
       allow read, write: if request.auth != null && request.auth.uid == userId;
     }
 
-    /**
-     * @description Manages access to Foundation level multiple-choice questions.
-     * @path /mcqs_foundation/{mcqId}
-     * @allow (get, list) Any user, authenticated or not, reading the questions.
-     * @deny (create, update, delete) Any user trying to modify the shared question bank.
-     * @principle Provides public read access for shared content while securing writes.
-     */
+    // This rule secures the subcollection of uploaded files. It ensures a user can only
+    // access files stored under their own user document.
+    match /users/{userId}/uploadedFiles/{fileId} {
+      allow read, write: if request.auth != null && request.auth.uid == userId;
+    }
+
+
+    // --- PUBLIC MCQ DATA ---
+
+    // The following rules make the MCQ collections publicly readable by anyone,
+    // but writable by no one. This is suitable for shared quiz content.
     match /mcqs_foundation/{mcqId} {
       allow read, list: if true;
-      allow write: if false; // Writes are disabled. Add auth logic for admins/creators.
+      allow write: if false;
     }
 
-    /**
-     * @description Manages access to Intermediate level multiple-choice questions.
-     * @path /mcqs_intermediate/{mcqId}
-     * @allow (get, list) Any user, authenticated or not, reading the questions.
-     * @deny (create, update, delete) Any user trying to modify the shared question bank.
-     * @principle Provides public read access for shared content while securing writes.
-     */
     match /mcqs_intermediate/{mcqId} {
       allow read, list: if true;
-      allow write: if false; // Writes are disabled. Add auth logic for admins/creators.
+      allow write: if false;
     }
 
-    /**
-     * @description Manages access to Final level multiple-choice questions.
-     * @path /mcqs_final/{mcqId}
-     * @allow (get, list) Any user, authenticated or not, reading the questions.
-     * @deny (create, update, delete) Any user trying to modify the shared question bank.
-     * @principle Provides public read access for shared content while securing writes.
-     */
     match /mcqs_final/{mcqId} {
       allow read, list: if true;
-      allow write: if false; // Writes are disabled. Add auth logic for admins/creators.
+      allow write: if false;
     }
   }
 }
