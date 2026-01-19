@@ -95,7 +95,10 @@ export function UploadForm({ onMcqsGenerated, setLoading, setError }: UploadForm
       }
     } catch (error) {
       console.error(error);
-      const errorMessage = error instanceof Error ? error.message : 'An unknown error occurred.';
+      let errorMessage = error instanceof Error ? error.message : 'An unknown error occurred.';
+      if (errorMessage.includes('overloaded') || errorMessage.includes('503')) {
+          errorMessage = 'The AI service is currently busy. Please try again in a moment.'
+      }
       setError(errorMessage);
       onMcqsGenerated(null);
       toast({
@@ -211,5 +214,3 @@ export function UploadForm({ onMcqsGenerated, setLoading, setError }: UploadForm
     </Form>
   );
 }
-
-    
