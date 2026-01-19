@@ -176,7 +176,7 @@ export default function ProfilePage() {
 
   const handleFileChange = async (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
-    if (!file || !user) return;
+    if (!file || !user || !auth.currentUser) return;
 
     setIsUploading(true);
     const storageRef = ref(storage, `profile-pictures/${user.uid}`);
@@ -185,8 +185,14 @@ export default function ProfilePage() {
       const snapshot = await uploadBytes(storageRef, file);
       const downloadURL = await getDownloadURL(snapshot.ref);
 
-      form.setValue('photoURL', downloadURL);
-      await onSubmit(form.getValues());
+      // Update the form state locally
+      form.setValue('photoURL', downloadURL, { shouldDirty: true });
+      
+      // Update Firestore and Auth profile in parallel
+      await Promise.all([
+        setDoc(doc(firestore, 'users', user.uid), { photoURL: downloadURL, updatedAt: new Date().toISOString() }, { merge: true }),
+        updateProfile(auth.currentUser, { photoURL: downloadURL })
+      ]);
       
       toast({
         title: 'Profile Picture Updated',
