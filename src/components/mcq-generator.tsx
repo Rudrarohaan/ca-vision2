@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import {
   Card,
   CardContent,
@@ -22,8 +22,13 @@ export function McqGenerator() {
   const [mcqs, setMcqs] = useState<GenerateMcqsFromSyllabusOutput | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [hasMounted, setHasMounted] = useState(false);
   const { user } = useUser();
   const firestore = useFirestore();
+
+  useEffect(() => {
+    setHasMounted(true);
+  }, []);
 
   const handleReset = () => {
     setMcqs(null);
@@ -81,25 +86,29 @@ export function McqGenerator() {
         </div>
         <Card className="shadow-2xl shadow-primary/5">
           <CardContent className="p-0">
-            <Tabs defaultValue="syllabus" className="w-full">
-              <TabsList className="grid w-full grid-cols-2 rounded-t-lg rounded-b-none h-14">
-                <TabsTrigger value="syllabus" className="h-full rounded-tl-md text-base">From Syllabus</TabsTrigger>
-                <TabsTrigger value="upload" className="h-full rounded-tr-md text-base">From Upload</TabsTrigger>
-              </TabsList>
-              <div className="p-6">
-                <TabsContent value="syllabus">
-                  <SyllabusForm onMcqsGenerated={onMcqsGenerated} setLoading={setLoading} setError={setError} />
-                </TabsContent>
-                <TabsContent value="upload">
-                  <UploadForm onMcqsGenerated={onMcqsGenerated} setLoading={setLoading} setError={setError} />
-                </TabsContent>
-              </div>
-            </Tabs>
+          {hasMounted ? (
+              <Tabs defaultValue="syllabus" className="w-full">
+                <TabsList className="grid w-full grid-cols-2 rounded-t-lg rounded-b-none h-14">
+                  <TabsTrigger value="syllabus" className="h-full rounded-tl-md text-base">From Syllabus</TabsTrigger>
+                  <TabsTrigger value="upload" className="h-full rounded-tr-md text-base">From Upload</TabsTrigger>
+                </TabsList>
+                <div className="p-6">
+                  <TabsContent value="syllabus">
+                    <SyllabusForm onMcqsGenerated={onMcqsGenerated} setLoading={setLoading} setError={setError} />
+                  </TabsContent>
+                  <TabsContent value="upload">
+                    <UploadForm onMcqsGenerated={onMcqsGenerated} setLoading={setLoading} setError={setError} />
+                  </TabsContent>
+                </div>
+              </Tabs>
+            ) : (
+                <div className="flex h-[400px] items-center justify-center">
+                    <Loader2 className="h-10 w-10 animate-spin text-primary" />
+                </div>
+            )}
           </CardContent>
         </Card>
       </div>
     </div>
   );
 }
-
-    
