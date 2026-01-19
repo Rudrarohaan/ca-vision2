@@ -12,16 +12,17 @@ import { Button } from '@/components/ui/button';
 import { BrainCircuit, MessageSquare, ArrowRight } from 'lucide-react';
 import { useUser } from '@/firebase/auth/use-user';
 import { useFirestore, useDoc, useMemoFirebase } from '@/firebase';
-import { doc } from 'firebase/firestore';
+import { doc, setDoc } from 'firebase/firestore';
 import type { UserProfile } from '@/lib/types';
 import { useEffect, useMemo } from 'react';
 import { Skeleton } from '@/components/ui/skeleton';
-import { createUserProfileAction } from '@/app/actions';
+import { useToast } from '@/hooks/use-toast';
 
 
 export default function DashboardPage() {
   const { user } = useUser();
   const firestore = useFirestore();
+  const { toast } = useToast();
 
   const userDocRef = useMemoFirebase(
     () => (user ? doc(firestore, 'users', user.uid) : null),
@@ -31,21 +32,32 @@ export default function DashboardPage() {
   const { data: userProfile, isLoading: isProfileLoading } = useDoc<UserProfile>(userDocRef);
 
   useEffect(() => {
-    // If the user is logged in, but we're not loading a profile and no profile exists, create one.
-    if (user && !isProfileLoading && !userProfile) {
-      createUserProfileAction({
-        uid: user.uid,
+    // If the user is logged in, but we're not loading a profile and no profile exists, create one client-side.
+    if (user && !isProfileLoading && !userProfile && firestore) {
+      const newUserProfile: UserProfile = {
+        id: user.uid,
         email: user.email || '',
         displayName: user.displayName || user.email?.split('@')[0] || 'Anonymous User',
         photoURL: user.photoURL || '',
-      }).then(result => {
-        if (!result.success) {
-          console.error("DashboardPage: Failed to create user profile:", result.error);
-        }
-        // The useDoc hook will automatically update with the new profile data.
-      });
+        createdAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString(),
+        quizzesGenerated: 0,
+        totalMcqsAttempted: 0,
+        totalMcqsCorrect: 0,
+      };
+
+      const userDoc = doc(firestore, 'users', user.uid);
+      setDoc(userDoc, newUserProfile, { merge: true })
+        .catch((error) => {
+          console.error("DashboardPage: Failed to create user profile:", error);
+          toast({
+            variant: "destructive",
+            title: "Profile Creation Failed",
+            description: "Could not create your user profile. Please try logging in again.",
+          });
+        });
     }
-  }, [user, userProfile, isProfileLoading]);
+  }, [user, userProfile, isProfileLoading, firestore, toast]);
 
 
   const overallAnalytics = useMemo(() => {
