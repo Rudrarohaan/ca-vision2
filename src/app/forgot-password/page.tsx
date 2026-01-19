@@ -10,7 +10,7 @@ import {
 } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
-import { Eye, Mail, Loader2, ArrowLeft } from 'lucide-react';
+import { Mail, Loader2, ArrowLeft } from 'lucide-react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
@@ -26,6 +26,7 @@ import { useAuth } from '@/firebase';
 import { useState } from 'react';
 import { sendPasswordResetEmail } from 'firebase/auth';
 import { useToast } from '@/hooks/use-toast';
+import { CaVisionLogo } from '@/components/ca-vision-logo';
 
 const forgotPasswordSchema = z.object({
   email: z.string().email('Invalid email address.'),
@@ -75,7 +76,7 @@ export default function ForgotPasswordPage() {
       <Card className="w-full max-w-md shadow-2xl shadow-primary/10">
         <CardHeader className="text-center">
           <div className="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-full bg-primary/10 glow-soft">
-            <Eye className="h-8 w-8 text-primary" />
+            <CaVisionLogo className="h-8 w-8 text-primary" />
           </div>
           <CardTitle className="font-headline text-3xl">Forgot Password</CardTitle>
           <CardDescription>

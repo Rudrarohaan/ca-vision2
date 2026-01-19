@@ -10,7 +10,7 @@ import {
 } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
-import { Eye, Lock, Mail, User as UserIcon, Loader2 } from 'lucide-react';
+import { Lock, Mail, User as UserIcon, Loader2 } from 'lucide-react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
@@ -31,6 +31,7 @@ import { useUser } from '@/firebase/auth/use-user';
 import { useEffect, useState } from 'react';
 import { createUserProfileAction } from '../actions';
 import { updateProfile } from 'firebase/auth';
+import { CaVisionLogo } from '@/components/ca-vision-logo';
 
 const signupSchema = z.object({
   displayName: z.string().min(2, 'Name must be at least 2 characters.'),
@@ -98,7 +99,7 @@ export default function SignupPage() {
       <Card className="w-full max-w-md shadow-2xl shadow-primary/10">
         <CardHeader className="text-center">
           <div className="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-full bg-primary/10 glow-soft">
-            <Eye className="h-8 w-8 text-primary" />
+            <CaVisionLogo className="h-8 w-8 text-primary" />
           </div>
           <CardTitle className="font-headline text-3xl">Create an Account</CardTitle>
           <CardDescription>
