@@ -14,6 +14,19 @@ import {
   generateMcqsFromUploadedMaterial,
 } from '@/ai/flows/generate-mcqs-from-uploaded-material';
 
+// Helper function to handle AI errors
+const handleAiError = (error: unknown): Error => {
+  console.error('AI Action Error:', error);
+  const errorMessage = error instanceof Error ? error.message : 'An unknown error occurred';
+  
+  if (errorMessage.includes('overloaded') || errorMessage.includes('503')) {
+    return new Error('The AI service is currently busy and cannot handle your request. Please try again in a moment.');
+  }
+  
+  return new Error(errorMessage);
+}
+
+
 export async function generateMcqsFromSyllabusAction(
   input: Omit<GenerateMcqsFromSyllabusInput, 'seed'>
 ) {
@@ -27,8 +40,7 @@ export async function generateMcqsFromSyllabusAction(
     }
     return mcqs;
   } catch (error) {
-    console.error('MCQ Generation Error (Syllabus):', error);
-    throw new Error(error instanceof Error ? error.message : 'An unknown error occurred');
+    throw handleAiError(error);
   }
 }
 
@@ -51,8 +63,7 @@ export async function generateMcqsFromUploadedMaterialAction(
     }
     return mcqs;
   } catch (error) {
-    console.error('MCQ Generation Error (Upload):', error);
-    throw new Error(error instanceof Error ? error.message : 'An unknown error occurred');
+    throw handleAiError(error);
   }
 }
 
@@ -102,13 +113,17 @@ const getInstantStudyAssistanceFlow = ai.defineFlow(
 );
 
 export async function getInstantStudyAssistance(input: GetInstantStudyAssistanceInput): Promise<GetInstantStudyAssistanceOutput> {
-    const result = await getInstantStudyAssistanceFlow(input);
-    const validation = GetInstantStudyAssistanceOutputSchema.safeParse(result);
-    if (!validation.success) {
-        console.error("AI response validation failed:", validation.error);
-        throw new Error("The AI model failed to return a response that matched the required format. Please try again.");
+    try {
+        const result = await getInstantStudyAssistanceFlow(input);
+        const validation = GetInstantStudyAssistanceOutputSchema.safeParse(result);
+        if (!validation.success) {
+            console.error("AI response validation failed:", validation.error);
+            throw new Error("The AI model failed to return a response that matched the required format. Please try again.");
+        }
+        return validation.data;
+    } catch(error) {
+        throw handleAiError(error);
     }
-    return validation.data;
 }
 
 

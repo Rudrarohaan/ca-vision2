@@ -58,15 +58,10 @@ export default function ChatPage() {
 
     } catch (error) {
       console.error(error);
-      let messageContent = 'Sorry, something went wrong. Please try again.';
-      if (error instanceof Error) {
-        if (error.message.includes('overloaded') || error.message.includes('503')) {
-          messageContent = 'The AI service is currently busy and cannot handle your request right now. Please try again in a moment.';
-        } else if (error.message) {
-            // Use the error message from the action if it exists
-            messageContent = `An error occurred: ${error.message}`;
-        }
-      }
+      const messageContent = error instanceof Error 
+        ? `An error occurred: ${error.message}` 
+        : 'Sorry, something went wrong. Please try again.';
+
       const errorMessage: Message = {
         id: (Date.now() + 1).toString(),
         role: 'model',

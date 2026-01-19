@@ -98,10 +98,7 @@ export function SyllabusForm({ onMcqsGenerated, setLoading, setError }: Syllabus
       }
     } catch (error) {
       console.error(error);
-      let errorMessage = error instanceof Error ? error.message : 'An unknown error occurred.';
-      if (errorMessage.includes('overloaded') || errorMessage.includes('503')) {
-          errorMessage = 'The AI service is currently busy. Please try again in a moment.'
-      }
+      const errorMessage = error instanceof Error ? error.message : 'An unknown error occurred.';
       setError(errorMessage);
       onMcqsGenerated(null);
       toast({
