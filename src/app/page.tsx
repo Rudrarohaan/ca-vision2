@@ -121,7 +121,7 @@ export default function DashboardPage() {
           </CardHeader>
           <CardContent>
             <CardDescription>
-              Ask questions, summarize YouTube videos, and get help with PDFs.
+              Get instant answers to your CA-related questions.
             </CardDescription>
           </CardContent>
           <CardContent>
