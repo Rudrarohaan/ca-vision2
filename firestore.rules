@@ -1,40 +1,17 @@
 rules_version = '2';
+
 service cloud.firestore {
   match /databases/{database}/documents {
 
     /**
-     * @description Controls access to a user's own profile document.
-     * @path /users/{userId}
-     * @allow (create) A new user creating their own profile document.
-     * @deny (get) An authenticated user trying to read another user's profile.
-     * @principle Restricts access to a user's own data tree and prevents user enumeration.
+     * @description Secures a user's entire data tree, including their profile and any subcollections.
+     * @path /users/{userId} and /users/{userId}/{subcollection}/{documentId}
+     * @allow (read, write) An authenticated user accessing or modifying any document within their own data tree.
+     * @deny (list on /users) Listing the top-level 'users' collection is not granted by this rule, preventing user enumeration.
+     * @principle Enforces strict data ownership for a user's entire document hierarchy.
      */
-    match /users/{userId} {
-      // Users can only read, update, or delete their own profile document.
-      allow get, update, delete: if request.auth != null && request.auth.uid == userId;
-      allow list: if false; // Disallow listing all users to protect privacy.
-      
-      // Users can only create a profile document for themselves,
-      // and the document's ID must match their UID.
-      allow create: if request.auth != null && request.auth.uid == userId && request.resource.data.id == userId;
-    }
-
-    /**
-     * @description Secures files uploaded by a user. Access is restricted to the owner.
-     * @path /users/{userId}/uploadedFiles/{fileId}
-     * @allow (create) An authenticated user uploading a new file to their own account.
-     * @deny (list) A user trying to list files belonging to another user.
-     * @principle Enforces document ownership for a user's private subcollection.
-     */
-    match /users/{userId}/uploadedFiles/{fileId} {
-      // Only the user who owns the parent user document can access their uploaded files.
-      allow read, list, delete: if request.auth != null && request.auth.uid == userId;
-
-      // When creating a file, the internal 'userId' field must match the creator's UID.
-      allow create: if request.auth != null && request.auth.uid == userId && request.resource.data.userId == userId;
-
-      // When updating, the 'userId' field cannot be changed.
-      allow update: if request.auth != null && request.auth.uid == userId && request.resource.data.userId == resource.data.userId;
+    match /users/{userId}/{documents=**} {
+      allow read, write: if request.auth != null && request.auth.uid == userId;
     }
 
     /**
